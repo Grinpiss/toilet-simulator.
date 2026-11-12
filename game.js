@@ -211,10 +211,51 @@ if (typeof THREE !== 'undefined') {
  paper.rotation.z = Math.PI / 2; paper.userData = { action: "paper", label: "Нажми E — оторвать бумагу" };
  const strip = box(3.75, 0.85, -1.7, 0.12, 0.35, 0.025, mat.white); strip.visible = false;
 
- const beerBottle = new THREE.Group(); beerBottle.position.set(2.95, 1.1, -1.7); scene.add(beerBottle);
- const body = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.09, 0.32, 16), new THREE.MeshStandardMaterial({ color: 0x4a2511, roughness: 0.2 }));
- body.userData = { action: "beer", label: "Нажми E — выпить пиво СК" };
+ // БУТЫЛКА «СК — СТАРАЯ КРЕПОСТЬ» НА ТУМБОЧКЕ РЯДОМ С СИГАРЕТАМИ
+ const beerBottle = new THREE.Group();
+ beerBottle.position.set(2.38, 0.7, -1.85);
+ scene.add(beerBottle);
+
+ const petGlass = new THREE.MeshStandardMaterial({ color: 0x5c2c0e, roughness: 0.15, metalness: 0.1 });
+ const body = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.26, 20), petGlass);
+ body.position.y = 0.13;
+ body.userData = { action: "beer", label: "Нажми E — выпить пиво СК Старая Крепость" };
  beerBottle.add(body);
+
+ // Сужающееся плечо и горлышко
+ const shoulder = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.085, 0.11, 20), petGlass);
+ shoulder.position.y = 0.315;
+ beerBottle.add(shoulder);
+
+ // Темно-зеленая крышка
+ const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.027, 0.027, 0.03, 16), new THREE.MeshStandardMaterial({ color: 0x133822, roughness: 0.4 }));
+ cap.position.y = 0.385;
+ beerBottle.add(cap);
+
+ // Фирменная зелено-золотая этикетка СК
+ const label = new THREE.Mesh(new THREE.CylinderGeometry(0.087, 0.087, 0.13, 20, 1, true), new THREE.MeshStandardMaterial({ color: 0x163020, roughness: 0.5 }));
+ label.position.y = 0.13;
+ beerBottle.add(label);
+
+ const goldBadge = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.08, 0.06), new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.6, roughness: 0.3 }));
+ goldBadge.position.set(-0.085, 0.13, 0);
+ beerBottle.add(goldBadge);
+
+ // ТУМБОЧКА, ПЕПЕЛЬНИЦА, СИГАРЕТЫ И ДЫМ
+ box(2.5, 0.35, -1.7, 0.65, 0.7, 0.65, mat.dark);
+ const ashtray = cyl(2.4, 0.73, -1.62, 0.14, 0.12, 0.06, mat.metal);
+ ashtray.userData = { action: "smoke", label: "Нажми E — затянуться" };
+ cyl(2.4, 0.745, -1.62, 0.11, 0.11, 0.035, mat.dark);
+ const cig = box(2.44, 0.765, -1.62, 0.14, 0.018, 0.018, mat.white); cig.rotation.y = 0.4;
+ const ember = box(2.38, 0.765, -1.59, 0.025, 0.019, 0.019, new THREE.MeshBasicMaterial({ color: 0xff4500 })); ember.rotation.y = 0.4;
+ const smokeParticle = cyl(2.38, 0.82, -1.59, 0.015, 0.005, 0.08, new THREE.MeshBasicMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.35 }));
+
+ const cigPack = box(2.62, 0.77, -1.72, 0.11, 0.14, 0.045, new THREE.MeshStandardMaterial({ color: 0x9e1b1b, roughness: 0.4 }));
+ cigPack.rotation.y = -0.3; cigPack.userData = { action: "smoke", label: "Нажми E — затянуться" };
+ const cigPackTop = box(2.62, 0.845, -1.72, 0.105, 0.02, 0.04, mat.white); cigPackTop.rotation.y = -0.3;
+
+ const interactables = [flushButton, urinal1, urinal2, tap, door, switchPlate, coffee, coffeeLiquid, spray, paper, body, ashtray, cigPack];
+
 
  box(2.5, 0.35, -1.7, 0.65, 0.7, 0.65, mat.dark);
  const ashtray = cyl(2.4, 0.73, -1.65, 0.14, 0.12, 0.06, mat.metal);
