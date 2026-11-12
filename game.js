@@ -287,8 +287,8 @@ if (typeof THREE !== 'undefined') {
   }
   raycaster.setFromCamera(centerVec, camera);
   const hits = raycaster.intersectObjects(interactables);
-  if (hits.length > 0 && hits.object.visible) {
-   currentTarget = hits.object;
+ • if (hits.length > 0 && hits[0].object.visible) {
+  currentTarget = hits[0].object;
    promptEl.textContent = currentTarget.userData.label;
    promptEl.style.display = 'block';
   } else {
