@@ -42,6 +42,10 @@ small{color:#aaa;line-height:1.7}
 </script>
 <script type="module">
 import * as THREE from 'three';
+ const interactables=[
+ flushButton,tap,door,switchPlate,
+ coffee,ashtray,body
+];
 
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x9ca7aa);
@@ -186,6 +190,61 @@ strip.visible = false;
 // Add objects to interaction system
 
 
+ // BEER BOTTLE — СТАРАЯ КРЕПОСТЬ
+ const beerBottle = new THREE.Group();
+ beerBottle.position.set(2.95, 1.1, -1.7);
+ scene.add(beerBottle);
+
+ const glass = new THREE.MeshStandardMaterial({
+   color: 0x63351b,
+   roughness: 0.2,
+   metalness: 0.15
+ });
+
+ const body = new THREE.Mesh(
+   new THREE.CylinderGeometry(.075,.09,.32,24),
+   glass
+ );
+ body.userData = {
+   action:"beer",
+   label:"Нажми E — взять пиво СК"
+ };
+ beerBottle.add(body);
+
+ const neck = new THREE.Mesh(
+   new THREE.CylinderGeometry(.035,.045,.13,20),
+   glass
+ );
+ neck.position.y=.21;
+ beerBottle.add(neck);
+
+ const cap = new THREE.Mesh(
+   new THREE.CylinderGeometry(.04,.04,.035,20),
+   materials.metal
+ );
+ cap.position.y=.29;
+ beerBottle.add(cap);
+
+ const label = new THREE.Mesh(
+   new THREE.PlaneGeometry(.13,.13),
+   new THREE.MeshStandardMaterial({
+     color:0xe6d4a2,
+     roughness:.8
+   })
+ );
+ label.position.set(0,0,.076);
+ beerBottle.add(label);
+
+ const logo = new THREE.Mesh(
+   new THREE.PlaneGeometry(.115,.035),
+   new THREE.MeshBasicMaterial({color:0x8b241b})
+ );
+ logo.position.set(0,.015,.078);
+ beerBottle.add(logo);
+
+ // Make bottle body interactive
+ body.userData.action="beer";
+
 // Interactable objects
  
 const interactables=[flushButton,tap,door,switchPlate];
@@ -232,6 +291,12 @@ function sound(freq=440,duration=.15,type="sine"){
 
 
 function interact(){
+ if(action==="beer"){
+ sound(350,.25);
+ prompt.textContent="🍺 Старая Крепость — СК!";
+ body.rotation.z=.3;
+ setTimeout(()=>body.rotation.z=0,700);
+}
  raycaster.setFromCamera(center,camera);
  const hits=raycaster.intersectObjects(interactables);
  if(!hits.length)return;
