@@ -1,5 +1,5 @@
 const fartAudio = new Audio('farts-4.mp3');
-const radioAudio = new Audio('rap.mp3');
+const radioAudio = new Audio('rap.mp3.aac');
 radioAudio.loop = true;
 radioAudio.volume = 0.5;
 
