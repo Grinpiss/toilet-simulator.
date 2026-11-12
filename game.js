@@ -355,6 +355,17 @@ if (typeof THREE !== 'undefined') {
  const fanBlades = new THREE.Group(); fanBlades.position.set(0, 3.2, -3.82); scene.add(fanBlades);
  const b1 = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.06, 0.02), mat.dark); fanBlades.add(b1);
  const b2 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.42, 0.02), mat.dark); fanBlades.add(b2);
+ function makePoster(title, sub, color = '#d9d4c5') {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 340;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = color; ctx.fillRect(0, 0, 256, 340);
+  ctx.strokeStyle = '#9e1b1b'; ctx.lineWidth = 12; ctx.strokeRect(14, 14, 228, 312);
+  ctx.fillStyle = '#9e1b1b'; ctx.font = 'bold 28px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(title, 128, 85);
+  ctx.fillStyle = '#1b211e'; ctx.font = 'bold 20px sans-serif';
+  sub.forEach((line, idx) => ctx.fillText(line, 128, 145 + idx * 32));
+  return new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c) });
+ }
 
  // 6. ПЛАКАТЫ НА СТЕНАХ И ЧУГУННАЯ БАТАРЕЯ
  const poster1 = new THREE.Mesh(new THREE.PlaneGeometry(0.65, 0.85), makePoster('ВНИМАНИЕ!', ['ВИТАЛИКУ ВХОД ОТКРЫТ 24 НА 7']));
