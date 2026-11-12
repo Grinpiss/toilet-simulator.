@@ -6,12 +6,12 @@ window.startGame = function() {
  const s = document.getElementById('start');
  if (s) s.remove();
  initAudio();
- document.body.requestPointerLock();
+ try { document.body.requestPointerLock(); } catch (e) {}
 };
 
 document.addEventListener('click', () => {
  if (isPlaying && document.pointerLockElement !== document.body) {
-  document.body.requestPointerLock();
+  try { document.body.requestPointerLock(); } catch (e) {}
  }
 });
 
@@ -333,13 +333,17 @@ if (typeof THREE !== 'undefined') {
  let lastMouseX = null, lastMouseY = null;
  document.addEventListener('mousemove', (e) => {
   if (!isPlaying) return;
-  if (lastMouseX !== null && lastMouseY !== null) {
-   camera.rotation.y -= (e.clientX - lastMouseX) * 0.004;
-   camera.rotation.x = Math.max(-1.4, Math.min(1.4, camera.rotation.x - (e.clientY - lastMouseY) * 0.004));
+  if (document.pointerLockElement === document.body) {
+   camera.rotation.y -= e.movementX * 0.0025;
+   camera.rotation.x = Math.max(-1.4, Math.min(1.4, camera.rotation.x - e.movementY * 0.0025));
+  } else {
+   if (lastMouseX !== null && lastMouseY !== null) {
+    camera.rotation.y -= (e.clientX - lastMouseX) * 0.004;
+    camera.rotation.x = Math.max(-1.4, Math.min(1.4, camera.rotation.x - (e.clientY - lastMouseY) * 0.004));
+   }
+   lastMouseX = e.clientX; lastMouseY = e.clientY;
   }
-  lastMouseX = e.clientX; lastMouseY = e.clientY;
  });
- document.addEventListener('mouseleave', () => { lastMouseX = null; lastMouseY = null; });
 
  const keys = {};
  let doorOpen = false, lightOn = true, currentTarget = null;
