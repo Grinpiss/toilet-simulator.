@@ -6,7 +6,15 @@ window.startGame = function() {
  const s = document.getElementById('start');
  if (s) s.remove();
  initAudio();
+ document.body.requestPointerLock();
 };
+
+document.addEventListener('click', () => {
+ if (isPlaying && document.pointerLockElement !== document.body) {
+  document.body.requestPointerLock();
+ }
+});
+
 
 window.addEventListener('keydown', (e) => {
  if (!isPlaying && (e.code === 'Space' || e.code === 'Enter')) window.startGame();
