@@ -1,3 +1,4 @@
+const fartAudio = new Audio('farts-4.mp3');
 let isPlaying = false, audioCtx = null, tapNoise = null, sharedNoiseBuffer = null;
 let radioInterval = null, isRadioOn = false, drunkTimer = 0, coffeeBoostTimer = 0, isSitting = false, stepTimer = 0;
 
@@ -95,14 +96,14 @@ const sfx = {
   n2.connect(f2); f2.connect(g2); g2.connect(audioCtx.destination); n2.start(t + 1.0); n2.stop(t + 2.2);
  },
  fart(delay = 0, power = 1) {
-  initAudio(); if (!audioCtx) return;
-  const t = audioCtx.currentTime + delay;
-  const o = audioCtx.createOscillator(), g = audioCtx.createGain(), lfo = audioCtx.createOscillator(), lg = audioCtx.createGain();
-  o.type = 'sawtooth'; o.frequency.setValueAtTime(95 / power, t); o.frequency.linearRampToValueAtTime(40, t + 0.65 * power);
-  lfo.frequency.value = 28; lg.gain.value = 25; lfo.connect(lg); lg.connect(o.frequency);
-  g.gain.setValueAtTime(0.45, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.7 * power);
-  o.connect(g); g.connect(audioCtx.destination); lfo.start(t); o.start(t); lfo.stop(t + 0.7 * power); o.stop(t + 0.7 * power);
+  setTimeout(() => {
+   const s = fartAudio.cloneNode();
+   s.playbackRate = (0.9 + Math.random() * 0.2) / Math.sqrt(power);
+   s.volume = 0.9;
+   s.play().catch(() => {});
+  }, delay * 1000);
  },
+
  spray() {
   initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime, n = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
