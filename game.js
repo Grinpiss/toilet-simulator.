@@ -329,6 +329,45 @@ if (typeof THREE !== 'undefined') {
  const radio = box(2.55, 0.77, -1.45, 0.22, 0.14, 0.11, new THREE.MeshStandardMaterial({ color: 0x2b2d42, roughness: 0.5 }));
  radio.rotation.y = -0.4;
  radio.userData = { action: "radio", label: "Нажми E — включить/выключить радио" };
+  // 1. КАБИНКА ВОКРУГ УНИТАЗА (СОЗДАЕТ ОБЪЕМ И ПРОСТРАНСТВО)
+ const stallMat = new THREE.MeshStandardMaterial({ color: 0x32423c, roughness: 0.6 });
+ box(0.75, 1.35, -1.7, 0.06, 2.3, 1.5, stallMat); // Левая стенка кабинки
+ box(2.25, 1.35, -1.7, 0.06, 2.3, 1.5, stallMat); // Правая стенка кабинки
+ box(1.5, 2.45, -2.43, 1.56, 0.12, 0.06, stallMat); // Верхняя перекладина
+
+ // 2. ЁРШИК РЯДОМ С УНИТАЗОМ
+ cyl(0.95, 0.14, -1.35, 0.08, 0.07, 0.28, mat.white);
+ const brushHandle = cyl(0.95, 0.38, -1.35, 0.015, 0.015, 0.45, mat.metal);
+ brushHandle.userData = { action: "brush", label: "Нажми E — пошевелить ёршиком" };
+
+ // 3. МУСОРНОЕ ВЕДРО У РАКОВИНЫ (МОЖНО ПНУТЬ)
+ const trashBin = cyl(-2.65, 0.25, -1.2, 0.22, 0.17, 0.5, mat.metal);
+ trashBin.userData = { action: "trash", label: "Нажми E — порыться / пнуть ведро" };
+ cyl(-2.65, 0.48, -1.2, 0.19, 0.19, 0.02, mat.dark);
+
+ // 4. ДОЗАТОР ЖИДКОГО МЫЛА У РАКОВИНЫ
+ const soap = box(-1.55, 1.38, -1.88, 0.12, 0.22, 0.1, mat.white);
+ soap.userData = { action: "soap", label: "Нажми E — нажать дозатор мыла" };
+ box(-1.55, 1.25, -1.83, 0.02, 0.04, 0.06, mat.metal);
+
+ // 5. ВЫТЯЖНОЙ ВЕНТИЛЯТОР ПОД ПОТОЛКОМ
+ box(0, 3.2, -3.86, 0.55, 0.55, 0.06, mat.white);
+ const fanBlades = new THREE.Group(); fanBlades.position.set(0, 3.2, -3.82); scene.add(fanBlades);
+ const b1 = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.06, 0.02), mat.dark); fanBlades.add(b1);
+ const b2 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.42, 0.02), mat.dark); fanBlades.add(b2);
+
+ // 6. ПЛАКАТЫ НА СТЕНАХ И ЧУГУННАЯ БАТАРЕЯ
+ const poster1 = new THREE.Mesh(new THREE.PlaneGeometry(0.65, 0.85), makePoster('ВНИМАНИЕ!', ['ВИТАЛИКУ ВХОД ОТКРЫТ 24 НА 7']));
+ poster1.position.set(1.5, 1.95, -3.87); scene.add(poster1);
+
+ const poster2 = new THREE.Mesh(new THREE.PlaneGeometry(0.65, 0.85), makePoster('ПРАВИЛА', ['ПОСЛЕ СЕБЯ', 'СМЫВАТЬ И', 'МЫТЬ РУКИ!'], '#c8d6cf'));
+ poster2.position.set(-0.6, 1.95, -3.87); scene.add(poster2);
+
+ // Батарея отопления на левой стене
+ for (let i = 0; i < 6; i++) {
+  box(-3.82, 0.45, -0.3 + i * 0.14, 0.12, 0.65, 0.09, mat.rust);
+ }
+
 
  const interactables = [flushButton, seat, urinal1, urinal2, tap, handDryer, door, switchPlate, coffee, coffeeLiquid, spray, paper, body, ashtray, cigPack, radio];
  let lastMouseX = null, lastMouseY = null;
