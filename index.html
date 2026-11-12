@@ -6,7 +6,7 @@
 <title>Toilet Simulator</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;overflow:hidden;background:#111;color:white;font-family:Arial}
+body{margin:0;overflow:hidden;background:#111;color:white;font-family:Arial;user-select:none}
 canvas{display:block}
 #hud{position:fixed;inset:0;pointer-events:none}
 #title{position:absolute;top:20px;left:24px;font-size:20px;font-weight:bold;letter-spacing:3px}
@@ -16,7 +16,8 @@ canvas{display:block}
 #start{position:fixed;inset:0;background:linear-gradient(#101820dd,#101820f2);display:flex;align-items:center;justify-content:center;z-index:5;text-align:center}
 .panel{background:#202a32;padding:35px;border-radius:18px;width:min(90%,420px);box-shadow:0 20px 70px #0009}
 h1{letter-spacing:4px;font-size:30px}
-button{background:#e6e6e6;color:#151515;border:0;border-radius:8px;padding:14px 28px;font-weight:bold;cursor:pointer;font-size:16px}
+button{background:#e6e6e6;color:#151515;border:0;border-radius:8px;padding:14px 28px;font-weight:bold;cursor:pointer;font-size:16px;transition:0.2s}
+button:hover{background:#ffffff;transform:scale(1.05)}
 small{color:#aaa;line-height:1.7}
 </style>
 </head>
@@ -25,7 +26,7 @@ small{color:#aaa;line-height:1.7}
  <div class="panel">
   <h1>🚽 TOILET SIMULATOR</h1>
   <p>Добро пожаловать в туалет.</p>
-  <p><small>WASD — движение<br>Мышь — обзор<br>E — взаимодействие<br>F — секретное действие<br>ESC — освободить мышь</small></p>
+  <p><small>WASD — движение<br>Мышь (или ЛКМ + мышь) — обзор<br>E — взаимодействие<br>F — облегчиться</small></p>
   <button id="play">ИГРАТЬ</button>
  </div>
 </div>
@@ -37,25 +38,31 @@ small{color:#aaa;line-height:1.7}
 </div>
 
 <script type="importmap">
-{"imports":{"three":"https://jsdelivr.net"}}
+{"imports":{"three":"https://unpkg.com"}}
 </script>
 <script type="module">
 import * as THREE from 'three';
 
-// --- ЗВУКОВОЙ ДВИЖОК (WEB AUDIO API) ---
+let isPlaying = false;
+let isMouseDown = false;
+
+// --- ЗВУКОВОЙ ДВИЖОК ---
 let audioCtx = null;
 let tapNoiseNode = null;
 
 function initAudio() {
- if (!audioCtx) {
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
- }
- if (audioCtx.state === 'suspended') {
-  audioCtx.resume();
+ try {
+  if (!audioCtx) {
+   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+   audioCtx.resume();
+  }
+ } catch (e) {
+  console.warn("AudioContext не поддерживается:", e);
  }
 }
 
-// Генератор белого шума для воды и шипения
 function createNoiseBuffer() {
  const bufferSize = audioCtx.sampleRate * 2;
  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
@@ -67,9 +74,8 @@ function createNoiseBuffer() {
 }
 
 const sfx = {
- // Смыв унитаза
  flush() {
-  initAudio();
+  initAudio(); if (!audioCtx) return;
   const now = audioCtx.currentTime;
   const noise = audioCtx.createBufferSource();
   noise.buffer = createNoiseBuffer();
@@ -87,33 +93,21 @@ const sfx = {
   gain.gain.linearRampToValueAtTime(0.4, now + 0.3);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 2.6);
 
-  noise.connect(filter);
-  filter.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  noise.start(now);
-  noise.stop(now + 2.6);
+  noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+  noise.start(now); noise.stop(now + 2.6);
  },
-
- // Включение / выключение крана
  toggleTap(isOn) {
-  initAudio();
+  initAudio(); if (!audioCtx) return;
   if (isOn) {
    if (tapNoiseNode) return;
    const noise = audioCtx.createBufferSource();
    noise.buffer = createNoiseBuffer();
    noise.loop = true;
-
    const filter = audioCtx.createBiquadFilter();
-   filter.type = 'highpass';
-   filter.frequency.value = 1000;
-
+   filter.type = 'highpass'; filter.frequency.value = 1000;
    const gain = audioCtx.createGain();
    gain.gain.value = 0.15;
-
-   noise.connect(filter);
-   filter.connect(gain);
-   gain.connect(audioCtx.destination);
+   noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
    noise.start();
    tapNoiseNode = noise;
   } else if (tapNoiseNode) {
@@ -121,115 +115,71 @@ const sfx = {
    tapNoiseNode = null;
   }
  },
-
- // Глоток (для кофе и пива)
  gulp(delay = 0) {
-  initAudio();
+  initAudio(); if (!audioCtx) return;
   const now = audioCtx.currentTime + delay;
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
-
   osc.type = 'sine';
   osc.frequency.setValueAtTime(140, now);
   osc.frequency.exponentialRampToValueAtTime(380, now + 0.12);
   osc.frequency.exponentialRampToValueAtTime(110, now + 0.25);
-
   gain.gain.setValueAtTime(0.01, now);
   gain.gain.linearRampToValueAtTime(0.35, now + 0.05);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
-
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  osc.start(now);
-  osc.stop(now + 0.27);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(now); osc.stop(now + 0.27);
  },
-
- // Кофе: сёрб + глоток
  coffee() {
-  initAudio();
+  initAudio(); if (!audioCtx) return;
   const now = audioCtx.currentTime;
   const noise = audioCtx.createBufferSource();
   noise.buffer = createNoiseBuffer();
-
   const filter = audioCtx.createBiquadFilter();
   filter.type = 'bandpass';
   filter.frequency.setValueAtTime(800, now);
   filter.frequency.linearRampToValueAtTime(2200, now + 0.25);
-
   const gain = audioCtx.createGain();
   gain.gain.setValueAtTime(0.2, now);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-
-  noise.connect(filter);
-  filter.connect(gain);
-  gain.connect(audioCtx.destination);
-  noise.start(now);
-  noise.stop(now + 0.25);
-
+  noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+  noise.start(now); noise.stop(now + 0.25);
   this.gulp(0.28);
  },
-
- // Пиво: пшик пробки + два глотка
  beer() {
-  initAudio();
+  initAudio(); if (!audioCtx) return;
   const now = audioCtx.currentTime;
   const noise = audioCtx.createBufferSource();
   noise.buffer = createNoiseBuffer();
-
   const filter = audioCtx.createBiquadFilter();
-  filter.type = 'highpass';
-  filter.frequency.value = 3000;
-
+  filter.type = 'highpass'; filter.frequency.value = 3000;
   const gain = audioCtx.createGain();
   gain.gain.setValueAtTime(0.3, now);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-
-  noise.connect(filter);
-  filter.connect(gain);
-  gain.connect(audioCtx.destination);
-  noise.start(now);
-  noise.stop(now + 0.2);
-
-  this.gulp(0.3);
-  this.gulp(0.65);
+  noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+  noise.start(now); noise.stop(now + 0.2);
+  this.gulp(0.3); this.gulp(0.65);
  },
-
- // Звук облегчения (пердёж)
  fart() {
-  initAudio();
+  initAudio(); if (!audioCtx) return;
   const now = audioCtx.currentTime;
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
-
   osc.type = 'sawtooth';
   osc.frequency.setValueAtTime(95, now);
   osc.frequency.linearRampToValueAtTime(65, now + 0.25);
   osc.frequency.linearRampToValueAtTime(45, now + 0.55);
-
-  // Добавляем вибрацию (модуляцию)
   const lfo = audioCtx.createOscillator();
   const lfoGain = audioCtx.createGain();
-  lfo.frequency.value = 28;
-  lfoGain.gain.value = 25;
-  lfo.connect(lfoGain);
-  lfoGain.connect(osc.frequency);
-
+  lfo.frequency.value = 28; lfoGain.gain.value = 25;
+  lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
   gain.gain.setValueAtTime(0.4, now);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  lfo.start(now);
-  osc.start(now);
-  lfo.stop(now + 0.6);
-  osc.stop(now + 0.6);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  lfo.start(now); osc.start(now); lfo.stop(now + 0.6); osc.stop(now + 0.6);
  },
-
- // Щелчок выключателя или спрея
  click() {
-  initAudio();
+  initAudio(); if (!audioCtx) return;
   const now = audioCtx.currentTime;
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
@@ -238,15 +188,12 @@ const sfx = {
   osc.frequency.exponentialRampToValueAtTime(100, now + 0.04);
   gain.gain.setValueAtTime(0.2, now);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start(now);
-  osc.stop(now + 0.05);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(now); osc.stop(now + 0.05);
  }
 };
 
-// --- СЦЕНА И ОБЪЕКТЫ ---
-
+// --- СЦЕНА ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x9ca7aa);
 scene.fog = new THREE.Fog(0x9ca7aa, 10, 24);
@@ -289,7 +236,6 @@ function cylinder(x, y, z, rt, rb, h, mat) {
  m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; scene.add(m); return m;
 }
 
-// ROOM
 box("floor", 0, -0.15, 0, 8, 0.3, 8, materials.tile);
 box("back wall", 0, 2, -4, 8, 4, 0.2, materials.wall);
 box("left wall", -4, 2, 0, 0.2, 4, 8, materials.wall);
@@ -298,6 +244,8 @@ box("ceiling", 0, 4.1, 0, 8, 0.2, 8, materials.white);
 
 const gridMat = new THREE.LineBasicMaterial({ color: 0x8e9999, transparent: true, opacity: 0.35 });
 for (let i = -3.5; i <= 3.5; i += 0.5) {
- const points = [new THREE.Vector3(i, 0.008, -3.9), new THREE.Vector3(i, 0.008, 3.9)];
- scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), gridMat));
- const points2 = [new THREE.Vector3(-3.9, 0.008, i), new THREE.Vector3(3.9, 0.008, i)];
+ scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(i, 0.008, -3.9), new THREE.Vector3(i, 0.008, 3.9)]), gridMat));
+ scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3.9, 0.008, i), new THREE.Vector3(3.9, 0.008, i)]), gridMat));
+}
+
+// TOILET
