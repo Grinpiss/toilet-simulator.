@@ -363,13 +363,32 @@ poster1.position.set(1.5, 1.95, -3.87); scene.add(poster1);
  const poster2 = new THREE.Mesh(new THREE.PlaneGeometry(0.65, 0.85), makePoster('ПРАВИЛА', ['ПОСЛЕ СЕБЯ', 'СМЫВАТЬ И', 'МЫТЬ РУКИ!'], '#c8d6cf'));
  poster2.position.set(-0.6, 1.95, -3.87); scene.add(poster2);
 
+  // 7. ПОРТРЕТ ДРУГА В ЗОЛОТОЙ РАМКЕ НА ПРАВОЙ СТЕНЕ
+ const friendTex = new THREE.TextureLoader().load('friend.jpg');
+ const friendFrame = new THREE.Mesh(
+  new THREE.BoxGeometry(0.06, 1.45, 1.1),
+  new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.7, roughness: 0.3 })
+ );
+ friendFrame.position.set(3.87, 2.25, -1.7);
+ scene.add(friendFrame);
+
+ const friendPortrait = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.98, 1.33),
+  new THREE.MeshBasicMaterial({ map: friendTex })
+ );
+ friendPortrait.position.set(3.83, 2.25, -1.7);
+ friendPortrait.rotation.y = -Math.PI / 2;
+ friendPortrait.userData = { action: "portrait", label: "Нажми E — отдать респект брату" };
+ scene.add(friendPortrait);
+
+
  // Батарея отопления на левой стене
  for (let i = 0; i < 6; i++) {
   box(-3.82, 0.45, -0.3 + i * 0.14, 0.12, 0.65, 0.09, mat.rust);
  }
 
 
- const interactables = [flushButton, seat, urinal1, urinal2, tap, handDryer, door, switchPlate, coffee, coffeeLiquid, spray, paper, body, ashtray, cigPack, radio];
+ const interactables = [flushButton, seat, urinal1, urinal2, tap, handDryer, door, switchPlate, coffee, coffeeLiquid, spray, paper, body, ashtray, cigPack, radio, friendPortrait];
  let lastMouseX = null, lastMouseY = null;
  document.addEventListener('mousemove', (e) => {
   if (!isPlaying) return;
@@ -408,6 +427,14 @@ poster1.position.set(1.5, 1.95, -3.87); scene.add(poster1);
    if (a === "spray") { sfx.spray(); spray.position.y = 1.12; setTimeout(() => spray.position.y = 1.05, 200); }
    if (a === "smoke") { sfx.smoke(); ember.scale.set(1.6, 1.6, 1.6); setTimeout(() => ember.scale.set(1, 1, 1), 600); }
    if (a === "radio") { sfx.click(); sfx.toggleRadio(); }
+      if (a === "portrait") {
+    sfx.click();
+    friendPortrait.rotation.z = 0.08;
+    setTimeout(() => friendPortrait.rotation.z = 0, 250);
+    friendPortrait.userData.respect = (friendPortrait.userData.respect || 0) + 1;
+    friendPortrait.userData.label = "Респект отдан (" + friendPortrait.userData.respect + "x) — нажми E ещё";
+   }
+
   }
   if (e.code === 'KeyF') sfx.fart(0, isSitting ? 1.5 : 1);
  });
