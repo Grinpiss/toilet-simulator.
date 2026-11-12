@@ -1,0 +1,110 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #111;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  user-select: none;
+}
+
+canvas {
+  display: block;
+}
+
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+#title {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  font-size: 20px;
+  font-weight: bold;
+  letter-spacing: 3px;
+}
+
+#help {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  background: #111b;
+  padding: 14px 24px;
+  border: 1px solid #ffffff33;
+  border-radius: 12px;
+  line-height: 1.8;
+}
+
+#prompt {
+  position: absolute;
+  top: 57%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 17px;
+  background: #111d;
+  padding: 12px 20px;
+  border-radius: 9px;
+  display: none;
+}
+
+#cross {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+#start {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 24, 32, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  text-align: center;
+  cursor: pointer;
+}
+
+.panel {
+  background: #202a32;
+  padding: 35px;
+  border-radius: 18px;
+  width: min(90%, 420px);
+  box-shadow: 0 20px 70px #0009;
+}
+
+h1 {
+  letter-spacing: 4px;
+  font-size: 30px;
+  margin-top: 0;
+}
+
+button {
+  background: #4caf50;
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 14px 28px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+small {
+  color: #aaa;
+  line-height: 1.7;
+}
