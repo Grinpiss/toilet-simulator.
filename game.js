@@ -189,10 +189,7 @@ if (typeof THREE !== 'undefined') {
 
  const interactables = [flushButton, tap, door, switchPlate, coffee, coffeeLiquid, spray, paper, body];
 
- document.addEventListener('mousedown', () => {
-  isMouseDown = true;
-  if (isPlaying) lockMouse();
- });
+
  let lastMouseX = null, lastMouseY = null;
  document.addEventListener('mousemove', (e) => {
   if (!isPlaying) return;
@@ -210,3 +207,63 @@ if (typeof THREE !== 'undefined') {
   lastMouseX = null;
   lastMouseY = null;
  });
+ const keys = {};
+ let doorOpen = false, lightOn = true, currentTarget = null;
+ document.addEventListener('keydown', (e) => {
+  keys[e.code] = true;
+  if (!isPlaying) return;
+  if (e.code === 'KeyE' && currentTarget) {
+   const a = currentTarget.userData.action;
+   if (a === "flush") { sfx.flush(); water.visible = true; setTimeout(() => water.visible = false, 2500); }
+   if (a === "water") { sinkWater.visible = !sinkWater.visible; sfx.toggleTap(sinkWater.visible); }
+   if (a === "door") { sfx.click(); doorOpen = !doorOpen; doorPivot.rotation.y = doorOpen ? -1.3 : 0; }
+   if (a === "light") { sfx.click(); lightOn = !lightOn; mainLight.intensity = lightOn ? 1.5 : 0.1; }
+   if (a === "coffee" && coffeeLiquid.visible) { sfx.coffee(); coffeeLiquid.visible = false; coffee.userData.label = "Кружка пуста"; }
+   if (a === "paper") { sfx.click(); strip.visible = !strip.visible; }
+   if (a === "beer") { sfx.beer(); beerBottle.visible = false; }
+   if (a === "spray") { sfx.click(); spray.position.y = 1.12; setTimeout(() => spray.position.y = 1.05, 200); }
+  }
+  if (e.code === 'KeyF') sfx.fart();
+ });
+ document.addEventListener('keyup', (e) => keys[e.code] = false);
+
+ const raycaster = new THREE.Raycaster();
+ raycaster.far = 3.5;
+ const centerVec = new THREE.Vector2(0, 0);
+ const fwd = new THREE.Vector3();
+ const rgt = new THREE.Vector3();
+ const promptEl = document.getElementById('prompt');
+ const clock = new THREE.Clock();
+
+ function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.1);
+  if (isPlaying) {
+   const spd = 3.5 * dt;
+   fwd.set(0, 0, -1).applyQuaternion(camera.quaternion); fwd.y = 0; fwd.normalize();
+   rgt.set(1, 0, 0).applyQuaternion(camera.quaternion); rgt.y = 0; rgt.normalize();
+   if (keys['KeyW']) camera.position.addScaledVector(fwd, spd);
+   if (keys['KeyS']) camera.position.addScaledVector(fwd, -spd);
+   if (keys['KeyD']) camera.position.addScaledVector(rgt, spd);
+   if (keys['KeyA']) camera.position.addScaledVector(rgt, -spd);
+   camera.position.x = Math.max(-3.5, Math.min(3.5, camera.position.x));
+   camera.position.z = Math.max(-3.5, Math.min(3.5, camera.position.z));
+  }
+  raycaster.setFromCamera(centerVec, camera);
+  const hits = raycaster.intersectObjects(interactables);
+  if (hits.length > 0 && hits[0].object.visible) {
+   currentTarget = hits[0].object;
+   promptEl.textContent = currentTarget.userData.label;
+   promptEl.style.display = 'block';
+  } else {
+   currentTarget = null;
+   promptEl.style.display = 'none';
+  }
+  renderer.render(scene, camera);
+ }
+
+ window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);
+ });
+ animate();
+}
