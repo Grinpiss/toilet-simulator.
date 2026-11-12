@@ -1,37 +1,42 @@
-let isPlaying = false, isMouseDown = false, audioCtx = null, tapNoise = null;
+let isPlaying = false, isMouseDown = false, audioCtx = null, tapNoise = null, sharedNoiseBuffer = null;
 
-function startGame() {
- if (isPlaying) return;
+window.startGame = function() {
  isPlaying = true;
  const s = document.getElementById('start');
  if (s) s.remove();
  initAudio();
- try { document.body.requestPointerLock(); } catch (e) {}
+ lockMouse();
+};
+
+function lockMouse() {
+ try {
+  if (document.body.requestPointerLock && !document.pointerLockElement) {
+   document.body.requestPointerLock();
+  }
+ } catch (e) {}
 }
 
 window.addEventListener('keydown', (e) => {
- if (!isPlaying && (e.code === 'Space' || e.code === 'Enter')) startGame();
+ if (!isPlaying && (e.code === 'Space' || e.code === 'Enter')) window.startGame();
 });
 
 function initAudio() {
  try {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audioCtx) {
+   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+   sharedNoiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+   const d = sharedNoiseBuffer.getChannelData(0);
+   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
   if (audioCtx.state === 'suspended') audioCtx.resume();
  } catch (e) {}
-}
-
-function noiseBuf() {
- const b = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
- const d = b.getChannelData(0);
- for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
- return b;
 }
 
 const sfx = {
  flush() {
   initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime, n = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
-  n.buffer = noiseBuf(); n.loop = true;
+  n.buffer = sharedNoiseBuffer; n.loop = true;
   f.type = 'bandpass'; f.frequency.setValueAtTime(600, t); f.frequency.exponentialRampToValueAtTime(300, t + 2.5);
   g.gain.setValueAtTime(0.01, t); g.gain.linearRampToValueAtTime(0.4, t + 0.3); g.gain.exponentialRampToValueAtTime(0.001, t + 2.6);
   n.connect(f); f.connect(g); g.connect(audioCtx.destination); n.start(t); n.stop(t + 2.6);
@@ -40,9 +45,12 @@ const sfx = {
   initAudio(); if (!audioCtx) return;
   if (on && !tapNoise) {
    const n = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
-   n.buffer = noiseBuf(); n.loop = true; f.type = 'highpass'; f.frequency.value = 1000; g.gain.value = 0.15;
+   n.buffer = sharedNoiseBuffer; n.loop = true; f.type = 'highpass'; f.frequency.value = 1000; g.gain.value = 0.15;
    n.connect(f); f.connect(g); g.connect(audioCtx.destination); n.start(); tapNoise = n;
-  } else if (!on && tapNoise) { tapNoise.stop(); tapNoise = null; }
+  } else if (!on && tapNoise) {
+   try { tapNoise.stop(); } catch (e) {}
+   tapNoise = null;
+  }
  },
  gulp(d = 0) {
   initAudio(); if (!audioCtx) return;
@@ -54,7 +62,7 @@ const sfx = {
  coffee() {
   initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime, n = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
-  n.buffer = noiseBuf(); f.type = 'bandpass'; f.frequency.setValueAtTime(800, t); f.frequency.linearRampToValueAtTime(2200, t + 0.25);
+  n.buffer = sharedNoiseBuffer; f.type = 'bandpass'; f.frequency.setValueAtTime(800, t); f.frequency.linearRampToValueAtTime(2200, t + 0.25);
   g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
   n.connect(f); f.connect(g); g.connect(audioCtx.destination); n.start(t); n.stop(t + 0.25);
   this.gulp(0.28);
@@ -62,7 +70,7 @@ const sfx = {
  beer() {
   initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime, n = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
-  n.buffer = noiseBuf(); f.type = 'highpass'; f.frequency.value = 3000;
+  n.buffer = sharedNoiseBuffer; f.type = 'highpass'; f.frequency.value = 3000;
   g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
   n.connect(f); f.connect(g); g.connect(audioCtx.destination); n.start(t); n.stop(t + 0.2);
   this.gulp(0.3); this.gulp(0.65);
@@ -93,14 +101,19 @@ if (typeof THREE !== 'undefined') {
  camera.position.set(0, 1.65, 2.5);
  camera.rotation.order = 'YXZ';
 
- const renderer = new THREE.WebGLRenderer({ antialias: true });
+ const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
  renderer.setSize(innerWidth, innerHeight);
+ renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
  renderer.shadowMap.enabled = true;
+ renderer.shadowMap.type = THREE.BasicShadowMap;
  document.body.appendChild(renderer.domElement);
 
  scene.add(new THREE.HemisphereLight(0xffffff, 0x60616b, 1.2));
  const mainLight = new THREE.PointLight(0xffedcf, 1.5, 18);
- mainLight.position.set(0, 4.5, 0); mainLight.castShadow = true;
+ mainLight.position.set(0, 4.5, 0);
+ mainLight.castShadow = true;
+ mainLight.shadow.mapSize.width = 512;
+ mainLight.shadow.mapSize.height = 512;
  scene.add(mainLight);
 
  const mat = {
@@ -112,13 +125,13 @@ if (typeof THREE !== 'undefined') {
   water: new THREE.MeshStandardMaterial({ color: 0x53c8ee, transparent: true, opacity: 0.5 })
  };
 
- function box(x, y, z, sx, sy, sz, m) {
+ function box(x, y, z, sx, sy, sz, m, shadow = false) {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), m);
-  mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; scene.add(mesh); return mesh;
+  mesh.position.set(x, y, z); mesh.castShadow = shadow; mesh.receiveShadow = true; scene.add(mesh); return mesh;
  }
- function cyl(x, y, z, rt, rb, h, m) {
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, 32), m);
-  mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; scene.add(mesh); return mesh;
+ function cyl(x, y, z, rt, rb, h, m, shadow = false) {
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, 20), m);
+  mesh.position.set(x, y, z); mesh.castShadow = shadow; mesh.receiveShadow = true; scene.add(mesh); return mesh;
  }
 
  box(0, -0.15, 0, 8, 0.3, 8, mat.tile);
@@ -131,19 +144,19 @@ if (typeof THREE !== 'undefined') {
  grid.position.y = 0.005; scene.add(grid);
 
  const toilet = new THREE.Group(); toilet.position.set(1.5, 0, -1.7); scene.add(toilet);
- const base = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.3, 0.65, 32), mat.white);
- base.position.y = 0.34; base.scale.z = 1.3; toilet.add(base);
- const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.36, 0.2, 32), mat.white);
+ const base = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.3, 0.65, 20), mat.white);
+ base.position.y = 0.34; base.scale.z = 1.3; base.castShadow = true; toilet.add(base);
+ const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.36, 0.2, 20), mat.white);
  bowl.position.set(0, 0.68, -0.08); bowl.scale.z = 1.15; toilet.add(bowl);
- const seat = new THREE.Mesh(new THREE.TorusGeometry(0.39, 0.055, 12, 32), mat.dark);
+ const seat = new THREE.Mesh(new THREE.TorusGeometry(0.39, 0.055, 10, 24), mat.dark);
  seat.rotation.x = Math.PI / 2; seat.position.set(0, 0.81, -0.08); seat.scale.set(1, 1.18, 1); toilet.add(seat);
  const tank = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.85, 0.3), mat.white);
- tank.position.set(0, 1.05, 0.38); toilet.add(tank);
+ tank.position.set(0, 1.05, 0.38); tank.castShadow = true; toilet.add(tank);
  const flushButton = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.05), mat.metal);
  flushButton.position.set(0.27, 1.5, 0.21); toilet.add(flushButton);
  flushButton.userData = { action: "flush", label: "Нажми E — смыть воду" };
 
- box(-2, 0.45, -1.65, 0.9, 0.9, 0.65, mat.white);
+ box(-2, 0.45, -1.65, 0.9, 0.9, 0.65, mat.white, true);
  const basin = cyl(-2, 0.96, -1.65, 0.58, 0.58, 0.16, mat.white); basin.scale.z = 0.72;
  const tap = cyl(-2, 1.25, -1.88, 0.045, 0.045, 0.35, mat.metal);
  tap.userData = { action: "water", label: "Нажми E — включить кран" };
@@ -154,8 +167,8 @@ if (typeof THREE !== 'undefined') {
 
  const doorPivot = new THREE.Group(); doorPivot.position.set(-1.5, 0, 3.88); scene.add(doorPivot);
  const door = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 0.12), new THREE.MeshStandardMaterial({ color: 0x795c45, roughness: 0.65 }));
- door.position.set(0.75, 1.5, 0); doorPivot.add(door);
- const knob = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 16), mat.metal);
+ door.position.set(0.75, 1.5, 0); door.castShadow = true; doorPivot.add(door);
+ const knob = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 12), mat.metal);
  knob.position.set(1.3, 1.5, -0.1); doorPivot.add(knob);
  door.userData = { action: "door", label: "Нажми E — открыть дверь" };
 
@@ -178,12 +191,16 @@ if (typeof THREE !== 'undefined') {
  const strip = box(3.75, 0.85, -1.7, 0.12, 0.35, 0.025, mat.white); strip.visible = false;
 
  const beerBottle = new THREE.Group(); beerBottle.position.set(2.95, 1.1, -1.7); scene.add(beerBottle);
- const body = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.09, 0.32, 24), new THREE.MeshStandardMaterial({ color: 0x63351b, roughness: 0.2 }));
+ const body = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.09, 0.32, 16), new THREE.MeshStandardMaterial({ color: 0x63351b, roughness: 0.2 }));
  body.userData = { action: "beer", label: "Нажми E — выпить пиво СК" };
  beerBottle.add(body);
 
  const interactables = [flushButton, tap, door, switchPlate, coffee, coffeeLiquid, spray, paper, body];
-  document.addEventListener('mousedown', () => isMouseDown = true);
+
+ document.addEventListener('mousedown', () => {
+  isMouseDown = true;
+  if (isPlaying) lockMouse();
+ });
  document.addEventListener('mouseup', () => isMouseDown = false);
  document.addEventListener('mousemove', (e) => {
   if (isPlaying && (document.pointerLockElement || isMouseDown)) {
@@ -212,17 +229,21 @@ if (typeof THREE !== 'undefined') {
  });
  document.addEventListener('keyup', (e) => keys[e.code] = false);
 
- const raycaster = new THREE.Raycaster(); raycaster.far = 3.5;
+ const raycaster = new THREE.Raycaster();
+ raycaster.far = 3.5;
+ const centerVec = new THREE.Vector2(0, 0);
+ const fwd = new THREE.Vector3();
+ const rgt = new THREE.Vector3();
  const promptEl = document.getElementById('prompt');
  const clock = new THREE.Clock();
 
  function animate() {
   requestAnimationFrame(animate);
-  const dt = clock.getDelta();
+  const dt = Math.min(clock.getDelta(), 0.1);
   if (isPlaying) {
    const spd = 3.5 * dt;
-   const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion); fwd.y = 0; fwd.normalize();
-   const rgt = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion); rgt.y = 0; rgt.normalize();
+   fwd.set(0, 0, -1).applyQuaternion(camera.quaternion); fwd.y = 0; fwd.normalize();
+   rgt.set(1, 0, 0).applyQuaternion(camera.quaternion); rgt.y = 0; rgt.normalize();
    if (keys['KeyW']) camera.position.addScaledVector(fwd, spd);
    if (keys['KeyS']) camera.position.addScaledVector(fwd, -spd);
    if (keys['KeyD']) camera.position.addScaledVector(rgt, spd);
@@ -230,10 +251,10 @@ if (typeof THREE !== 'undefined') {
    camera.position.x = Math.max(-3.5, Math.min(3.5, camera.position.x));
    camera.position.z = Math.max(-3.5, Math.min(3.5, camera.position.z));
   }
-  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  raycaster.setFromCamera(centerVec, camera);
   const hits = raycaster.intersectObjects(interactables);
-  if (hits.length > 0 && hits.object.visible) {
-   currentTarget = hits.object;
+  if (hits.length > 0 && hits[0].object.visible) {
+   currentTarget = hits[0].object;
    promptEl.textContent = currentTarget.userData.label;
    promptEl.style.display = 'block';
   } else {
@@ -248,5 +269,3 @@ if (typeof THREE !== 'undefined') {
  });
  animate();
 }
-
-
