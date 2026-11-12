@@ -1,4 +1,5 @@
 let isPlaying = false, audioCtx = null, tapNoise = null, sharedNoiseBuffer = null;
+let radioInterval = null, isRadioOn = false, drunkTimer = 0, coffeeBoostTimer = 0, isSitting = false, stepTimer = 0;
 
 window.startGame = function() {
  isPlaying = true;
@@ -47,6 +48,13 @@ const sfx = {
   g.gain.setValueAtTime(0.01, t); g.gain.linearRampToValueAtTime(0.35, t + 0.05); g.gain.exponentialRampToValueAtTime(0.001, t + 0.26);
   o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + 0.27);
  },
+ burp(d = 0) {
+  initAudio(); if (!audioCtx) return;
+  const t = audioCtx.currentTime + d, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = 'sawtooth'; o.frequency.setValueAtTime(110, t); o.frequency.linearRampToValueAtTime(55, t + 0.55);
+  g.gain.setValueAtTime(0.01, t); g.gain.linearRampToValueAtTime(0.35, t + 0.08); g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+  o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + 0.62);
+ },
  coffee() {
   initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime, n = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
@@ -55,17 +63,13 @@ const sfx = {
   n.connect(f); f.connect(g); g.connect(audioCtx.destination); n.start(t); n.stop(t + 0.25);
   this.gulp(0.28);
  },
-  beer() {
+ beer() {
   initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime, n = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
   n.buffer = sharedNoiseBuffer; f.type = 'highpass'; f.frequency.value = 3000;
   g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
   n.connect(f); f.connect(g); g.connect(audioCtx.destination); n.start(t); n.stop(t + 0.2);
-  this.gulp(0.3);
-  this.gulp(0.62);
-  this.gulp(0.94);
-  this.burp(1.35);
-  this.fart(2.35);
+  this.gulp(0.3); this.gulp(0.62); this.gulp(0.94); this.burp(1.35); this.fart(2.35);
  },
  smoke() {
   initAudio(); if (!audioCtx) return;
@@ -82,16 +86,66 @@ const sfx = {
   g2.gain.setValueAtTime(0.01, t + 1.0); g2.gain.linearRampToValueAtTime(0.32, t + 1.25); g2.gain.exponentialRampToValueAtTime(0.001, t + 2.2);
   n2.connect(f2); f2.connect(g2); g2.connect(audioCtx.destination); n2.start(t + 1.0); n2.stop(t + 2.2);
  },
- fart(delay = 0) {
+ fart(delay = 0, power = 1) {
   initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime + delay;
   const o = audioCtx.createOscillator(), g = audioCtx.createGain(), lfo = audioCtx.createOscillator(), lg = audioCtx.createGain();
-  o.type = 'sawtooth'; o.frequency.setValueAtTime(95, t); o.frequency.linearRampToValueAtTime(45, t + 0.65);
+  o.type = 'sawtooth'; o.frequency.setValueAtTime(95 / power, t); o.frequency.linearRampToValueAtTime(40, t + 0.65 * power);
   lfo.frequency.value = 28; lg.gain.value = 25; lfo.connect(lg); lg.connect(o.frequency);
-  g.gain.setValueAtTime(0.45, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
-  o.connect(g); g.connect(audioCtx.destination); lfo.start(t); o.start(t); lfo.stop(t + 0.7); o.stop(t + 0.7);
+  g.gain.setValueAtTime(0.45, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.7 * power);
+  o.connect(g); g.connect(audioCtx.destination); lfo.start(t); o.start(t); lfo.stop(t + 0.7 * power); o.stop(t + 0.7 * power);
  },
-
+ spray() {
+  initAudio(); if (!audioCtx) return;
+  const t = audioCtx.currentTime, n = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
+  n.buffer = sharedNoiseBuffer; f.type = 'highpass'; f.frequency.value = 4500;
+  g.gain.setValueAtTime(0.35, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+  n.connect(f); f.connect(g); g.connect(audioCtx.destination); n.start(t); n.stop(t + 0.46);
+ },
+ paper() {
+  initAudio(); if (!audioCtx) return;
+  const t = audioCtx.currentTime, n = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
+  n.buffer = sharedNoiseBuffer; f.type = 'bandpass'; f.frequency.setValueAtTime(2400, t); f.frequency.linearRampToValueAtTime(4200, t + 0.18);
+  g.gain.setValueAtTime(0.25, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+  n.connect(f); f.connect(g); g.connect(audioCtx.destination); n.start(t); n.stop(t + 0.22);
+ },
+ creak() {
+  initAudio(); if (!audioCtx) return;
+  const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = 'sawtooth'; o.frequency.setValueAtTime(220, t); o.frequency.linearRampToValueAtTime(340, t + 0.35);
+  g.gain.setValueAtTime(0.08, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+  o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + 0.42);
+ },
+ dryer() {
+  initAudio(); if (!audioCtx) return;
+  const t = audioCtx.currentTime, n = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
+  n.buffer = sharedNoiseBuffer; n.loop = true; f.type = 'lowpass'; f.frequency.value = 550;
+  g.gain.setValueAtTime(0.01, t); g.gain.linearRampToValueAtTime(0.35, t + 0.2); g.gain.setValueAtTime(0.35, t + 3.5); g.gain.exponentialRampToValueAtTime(0.001, t + 4.0);
+  n.connect(f); f.connect(g); g.connect(audioCtx.destination); n.start(t); n.stop(t + 4.0);
+ },
+ step() {
+  initAudio(); if (!audioCtx) return;
+  const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = 'triangle'; o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.06);
+  g.gain.setValueAtTime(0.08, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+  o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + 0.08);
+ },
+ toggleRadio() {
+  initAudio(); if (!audioCtx) return;
+  isRadioOn = !isRadioOn;
+  if (isRadioOn) {
+   let beat = 0;
+   const notes = [110, 110, 146.83, 130.81, 98, 98, 130.81, 123.47];
+   radioInterval = setInterval(() => {
+    if (!audioCtx || !isRadioOn) return;
+    const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'square'; o.frequency.setValueAtTime(notes[beat % notes.length], t);
+    g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + 0.24);
+    beat++;
+   }, 280);
+  } else { clearInterval(radioInterval); }
+ },
  click() {
   initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
@@ -146,6 +200,7 @@ if (typeof THREE !== 'undefined') {
 
  box(0, -0.15, 0, 8, 0.3, 8, mat.tile);
  box(0, 2, -4, 8, 4, 0.2, mat.wall);
+ box(0, 2, 4, 8, 4, 0.2, mat.wall);
  box(-4, 2, 0, 0.2, 4, 8, mat.wall);
  box(4, 2, 0, 0.2, 4, 8, mat.wall);
  box(0, 4.1, 0, 8, 0.2, 8, mat.dark);
@@ -167,7 +222,9 @@ if (typeof THREE !== 'undefined') {
  const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.36, 0.2, 20), mat.white);
  bowl.position.set(0, 0.68, -0.08); bowl.scale.z = 1.15; toilet.add(bowl);
  const seat = new THREE.Mesh(new THREE.TorusGeometry(0.39, 0.055, 10, 24), mat.dark);
- seat.rotation.x = Math.PI / 2; seat.position.set(0, 0.81, -0.08); seat.scale.set(1, 1.18, 1); toilet.add(seat);
+ seat.rotation.x = Math.PI / 2; seat.position.set(0, 0.81, -0.08); seat.scale.set(1, 1.18, 1);
+ seat.userData = { action: "sit", label: "Нажми E — сесть на унитаз" };
+ toilet.add(seat);
  const tank = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.85, 0.3), mat.white);
  tank.position.set(0, 1.05, 0.38); toilet.add(tank);
  const flushButton = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.05), mat.metal);
@@ -193,6 +250,7 @@ if (typeof THREE !== 'undefined') {
  const urinal1 = createUrinal(-0.2, 1);
  const urinal2 = createUrinal(0.9, 2);
  box(3.65, 1.2, 0.35, 0.45, 1.1, 0.04, mat.metal);
+
  box(-2, 0.45, -1.65, 0.9, 0.9, 0.65, mat.white);
  const basin = cyl(-2, 0.96, -1.65, 0.58, 0.58, 0.16, mat.white); basin.scale.z = 0.72;
  const tap = cyl(-2, 1.25, -1.88, 0.045, 0.045, 0.35, mat.metal);
@@ -200,6 +258,10 @@ if (typeof THREE !== 'undefined') {
  box(-2, 1.4, -1.72, 0.35, 0.06, 0.06, mat.metal);
  const sinkWater = cyl(-2, 1.15, -1.6, 0.02, 0.02, 0.4, mat.water); sinkWater.visible = false;
  box(-2, 2.25, -3.86, 1.3, 1.3, 0.06, new THREE.MeshStandardMaterial({ color: 0x5c7a73, metalness: 0.85, roughness: 0.25 }));
+
+ const handDryer = box(-3.82, 1.45, -1.65, 0.18, 0.32, 0.26, mat.white);
+ handDryer.userData = { action: "dryer", label: "Нажми E — включить сушилку для рук" };
+ box(-3.80, 1.28, -1.65, 0.1, 0.04, 0.1, mat.dark);
 
  const doorPivot = new THREE.Group(); doorPivot.position.set(-1.5, 0, 3.88); scene.add(doorPivot);
  const door = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 0.12), new THREE.MeshStandardMaterial({ color: 0x3d2e22, roughness: 0.8 }));
@@ -224,7 +286,6 @@ if (typeof THREE !== 'undefined') {
  paper.rotation.z = Math.PI / 2; paper.userData = { action: "paper", label: "Нажми E — оторвать бумагу" };
  const strip = box(3.75, 0.85, -1.7, 0.12, 0.35, 0.025, mat.white); strip.visible = false;
 
- // БУТЫЛКА «СК — СТАРАЯ КРЕПОСТЬ» НА ТУМБОЧКЕ РЯДОМ С СИГАРЕТАМИ
  const beerBottle = new THREE.Group();
  beerBottle.position.set(2.38, 0.7, -1.85);
  scene.add(beerBottle);
@@ -235,26 +296,15 @@ if (typeof THREE !== 'undefined') {
  body.userData = { action: "beer", label: "Нажми E — выпить пиво СК Старая Крепость" };
  beerBottle.add(body);
 
- // Сужающееся плечо и горлышко
  const shoulder = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.085, 0.11, 20), petGlass);
- shoulder.position.y = 0.315;
- beerBottle.add(shoulder);
-
- // Темно-зеленая крышка
+ shoulder.position.y = 0.315; beerBottle.add(shoulder);
  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.027, 0.027, 0.03, 16), new THREE.MeshStandardMaterial({ color: 0x133822, roughness: 0.4 }));
- cap.position.y = 0.385;
- beerBottle.add(cap);
-
- // Фирменная зелено-золотая этикетка СК
+ cap.position.y = 0.385; beerBottle.add(cap);
  const label = new THREE.Mesh(new THREE.CylinderGeometry(0.087, 0.087, 0.13, 20, 1, true), new THREE.MeshStandardMaterial({ color: 0x163020, roughness: 0.5 }));
- label.position.y = 0.13;
- beerBottle.add(label);
-
+ label.position.y = 0.13; beerBottle.add(label);
  const goldBadge = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.08, 0.06), new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.6, roughness: 0.3 }));
- goldBadge.position.set(-0.085, 0.13, 0);
- beerBottle.add(goldBadge);
+ goldBadge.position.set(-0.085, 0.13, 0); beerBottle.add(goldBadge);
 
- // ТУМБОЧКА, ПЕПЕЛЬНИЦА, СИГАРЕТЫ И ДЫМ
  box(2.5, 0.35, -1.7, 0.65, 0.7, 0.65, mat.dark);
  const ashtray = cyl(2.4, 0.73, -1.62, 0.14, 0.12, 0.06, mat.metal);
  ashtray.userData = { action: "smoke", label: "Нажми E — затянуться" };
@@ -267,79 +317,12 @@ if (typeof THREE !== 'undefined') {
  cigPack.rotation.y = -0.3; cigPack.userData = { action: "smoke", label: "Нажми E — затянуться" };
  const cigPackTop = box(2.62, 0.845, -1.72, 0.105, 0.02, 0.04, mat.white); cigPackTop.rotation.y = -0.3;
 
- const interactables = [flushButton, urinal1, urinal2, tap, door, switchPlate, coffee, coffeeLiquid, spray, paper, body, ashtray, cigPack];
+ const radio = box(2.55, 0.77, -1.45, 0.22, 0.14, 0.11, new THREE.MeshStandardMaterial({ color: 0x2b2d42, roughness: 0.5 }));
+ radio.rotation.y = -0.4;
+ radio.userData = { action: "radio", label: "Нажми E — включить/выключить радио" };
+
+ const interactables = [flushButton, seat, urinal1, urinal2, tap, handDryer, door, switchPlate, coffee, coffeeLiquid, spray, paper, body, ashtray, cigPack, radio];
 
  let lastMouseX = null, lastMouseY = null;
  document.addEventListener('mousemove', (e) => {
   if (!isPlaying) return;
-  if (lastMouseX !== null && lastMouseY !== null) {
-   camera.rotation.y -= (e.clientX - lastMouseX) * 0.004;
-   camera.rotation.x = Math.max(-1.4, Math.min(1.4, camera.rotation.x - (e.clientY - lastMouseY) * 0.004));
-  }
-  lastMouseX = e.clientX; lastMouseY = e.clientY;
- });
- document.addEventListener('mouseleave', () => { lastMouseX = null; lastMouseY = null; });
-
- const keys = {};
- let doorOpen = false, lightOn = true, currentTarget = null;
- document.addEventListener('keydown', (e) => {
-  keys[e.code] = true;
-  if (!isPlaying) return;
-  if (e.code === 'KeyE' && currentTarget) {
-   const a = currentTarget.userData.action;
-   if (a === "flush" || a === "urinal") { sfx.flush(); water.visible = true; setTimeout(() => water.visible = false, 2500); }
-   if (a === "water") { sinkWater.visible = !sinkWater.visible; sfx.toggleTap(sinkWater.visible); }
-   if (a === "door") { sfx.click(); doorOpen = !doorOpen; doorPivot.rotation.y = doorOpen ? -1.3 : 0; }
-   if (a === "light") { sfx.click(); lightOn = !lightOn; mainLight.intensity = lightOn ? 1.3 : 0.08; lampBulb.visible = lightOn; }
-   if (a === "coffee" && coffeeLiquid.visible) { sfx.coffee(); coffeeLiquid.visible = false; coffee.userData.label = "Кружка пуста"; }
-   if (a === "paper") { sfx.click(); strip.visible = !strip.visible; }
-   if (a === "beer") { sfx.beer(); beerBottle.visible = false; }
-   if (a === "spray") { sfx.click(); spray.position.y = 1.12; setTimeout(() => spray.position.y = 1.05, 200); }
-   if (a === "smoke") { sfx.smoke(); ember.scale.set(1.6, 1.6, 1.6); setTimeout(() => ember.scale.set(1, 1, 1), 600); }
-  }
-  if (e.code === 'KeyF') sfx.fart();
- });
- document.addEventListener('keyup', (e) => keys[e.code] = false);
-
- const raycaster = new THREE.Raycaster(); raycaster.far = 3.5;
- const centerVec = new THREE.Vector2(0, 0), fwd = new THREE.Vector3(), rgt = new THREE.Vector3();
- const promptEl = document.getElementById('prompt'), clock = new THREE.Clock();
-
- function animate() {
-  requestAnimationFrame(animate);
-  const dt = Math.min(clock.getDelta(), 0.1);
-  if (lightOn && Math.random() < 0.03) mainLight.intensity = 0.7 + Math.random() * 0.6;
-  smokeParticle.position.y += dt * 0.25;
-  smokeParticle.material.opacity = Math.max(0, 0.4 - (smokeParticle.position.y - 0.8) * 0.8);
-  if (smokeParticle.position.y > 1.3) smokeParticle.position.y = 0.8;
-
-  if (isPlaying) {
-   const spd = 3.5 * dt;
-   fwd.set(0, 0, -1).applyQuaternion(camera.quaternion); fwd.y = 0; fwd.normalize();
-   rgt.set(1, 0, 0).applyQuaternion(camera.quaternion); rgt.y = 0; rgt.normalize();
-   if (keys['KeyW']) camera.position.addScaledVector(fwd, spd);
-   if (keys['KeyS']) camera.position.addScaledVector(fwd, -spd);
-   if (keys['KeyD']) camera.position.addScaledVector(rgt, spd);
-   if (keys['KeyA']) camera.position.addScaledVector(rgt, -spd);
-   camera.position.x = Math.max(-3.5, Math.min(3.5, camera.position.x));
-   camera.position.z = Math.max(-3.5, Math.min(3.5, camera.position.z));
-  }
-  raycaster.setFromCamera(centerVec, camera);
-  const hits = raycaster.intersectObjects(interactables);
-   if (hits.length > 0 && hits.at(0).object.visible) {
-   currentTarget = hits.at(0).object;
-
-   promptEl.textContent = currentTarget.userData.label;
-   promptEl.style.display = 'block';
-  } else {
-   currentTarget = null;
-   promptEl.style.display = 'none';
-  }
-  renderer.render(scene, camera);
- }
-
- window.addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);
- });
- animate();
-}
