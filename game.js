@@ -1,4 +1,8 @@
 const fartAudio = new Audio('farts-4.mp3');
+const radioAudio = new Audio('rap.mp3');
+radioAudio.loop = true;
+radioAudio.volume = 0.5;
+
 let isPlaying = false, audioCtx = null, tapNoise = null, sharedNoiseBuffer = null;
 let radioInterval = null, isRadioOn = false, drunkTimer = 0, coffeeBoostTimer = 0, isSitting = false, stepTimer = 0;
 
@@ -139,22 +143,12 @@ const sfx = {
   g.gain.setValueAtTime(0.08, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
   o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + 0.08);
  },
- toggleRadio() {
-  initAudio(); if (!audioCtx) return;
+  toggleRadio() {
   isRadioOn = !isRadioOn;
-  if (isRadioOn) {
-   let beat = 0;
-   const notes = [110, 110, 146.83, 130.81, 98, 98, 130.81, 123.47];
-   radioInterval = setInterval(() => {
-    if (!audioCtx || !isRadioOn) return;
-    const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = 'square'; o.frequency.setValueAtTime(notes[beat % notes.length], t);
-    g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
-    o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + 0.24);
-    beat++;
-   }, 280);
-  } else { clearInterval(radioInterval); }
+  if (isRadioOn) radioAudio.play().catch(() => {});
+  else radioAudio.pause();
  },
+
  click() {
   initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
@@ -329,11 +323,6 @@ if (typeof THREE !== 'undefined') {
  const radio = box(2.55, 0.77, -1.45, 0.22, 0.14, 0.11, new THREE.MeshStandardMaterial({ color: 0x2b2d42, roughness: 0.5 }));
  radio.rotation.y = -0.4;
  radio.userData = { action: "radio", label: "Нажми E — включить/выключить радио" };
-  // 1. КАБИНКА ВОКРУГ УНИТАЗА (СОЗДАЕТ ОБЪЕМ И ПРОСТРАНСТВО)
- const stallMat = new THREE.MeshStandardMaterial({ color: 0x32423c, roughness: 0.6 });
- box(0.75, 1.35, -1.7, 0.06, 2.3, 1.5, stallMat); // Левая стенка кабинки
- box(2.25, 1.35, -1.7, 0.06, 2.3, 1.5, stallMat); // Правая стенка кабинки
- box(1.5, 2.45, -2.43, 1.56, 0.12, 0.06, stallMat); // Верхняя перекладина
 
  // 2. ЁРШИК РЯДОМ С УНИТАЗОМ
  cyl(0.95, 0.14, -1.35, 0.08, 0.07, 0.28, mat.white);
@@ -368,8 +357,8 @@ if (typeof THREE !== 'undefined') {
  }
 
  // 6. ПЛАКАТЫ НА СТЕНАХ И ЧУГУННАЯ БАТАРЕЯ
- const poster1 = new THREE.Mesh(new THREE.PlaneGeometry(0.65, 0.85), makePoster('ВНИМАНИЕ!', ['ВИТАЛИКУ ВХОД ОТКРЫТ 24 НА 7']));
- poster1.position.set(1.5, 1.95, -3.87); scene.add(poster1);
+const poster1 = new THREE.Mesh(new THREE.PlaneGeometry(0.65, 0.85), makePoster('ВНИМАНИЕ!', ['ВИТАЛИКУ', 'ВХОД ОТКРЫТ', '24 НА 7!']));
+poster1.position.set(1.5, 1.95, -3.87); scene.add(poster1);
 
  const poster2 = new THREE.Mesh(new THREE.PlaneGeometry(0.65, 0.85), makePoster('ПРАВИЛА', ['ПОСЛЕ СЕБЯ', 'СМЫВАТЬ И', 'МЫТЬ РУКИ!'], '#c8d6cf'));
  poster2.position.set(-0.6, 1.95, -3.87); scene.add(poster2);
