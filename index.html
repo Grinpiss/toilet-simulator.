@@ -13,36 +13,53 @@ canvas{display:block}
 #help{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);text-align:center;background:#111b;padding:14px 24px;border:1px solid #ffffff33;border-radius:12px;line-height:1.8}
 #prompt{position:absolute;top:57%;left:50%;transform:translate(-50%,-50%);font-size:17px;background:#111d;padding:12px 20px;border-radius:9px;display:none}
 #cross{position:absolute;top:50%;left:50%;width:5px;height:5px;background:#fff;border-radius:50%;transform:translate(-50%,-50%)}
-#start{position:fixed;inset:0;background:linear-gradient(#101820dd,#101820f2);display:flex;align-items:center;justify-content:center;z-index:10;text-align:center}
+#start{position:fixed;inset:0;background:rgba(16,24,32,0.92);display:flex;align-items:center;justify-content:center;z-index:999;text-align:center;cursor:pointer}
 .panel{background:#202a32;padding:35px;border-radius:18px;width:min(90%,420px);box-shadow:0 20px 70px #0009}
 h1{letter-spacing:4px;font-size:30px;margin-top:0}
-button{background:#e6e6e6;color:#151515;border:0;border-radius:8px;padding:14px 28px;font-weight:bold;cursor:pointer;font-size:16px}
-button:hover{background:#fff}
+button{background:#4caf50;color:#fff;border:0;border-radius:8px;padding:14px 28px;font-weight:bold;cursor:pointer;font-size:16px}
 small{color:#aaa;line-height:1.7}
 </style>
-<script src="https://cloudflare.com"></script>
+<script src="https://jsdelivr.net"></script>
 </head>
 <body>
-<div id="start">
+
+<div id="start" onclick="startGame()">
  <div class="panel">
   <h1>🚽 TOILET SIMULATOR</h1>
   <p>Добро пожаловать в туалет.</p>
   <p><small>WASD — движение<br>Мышь — обзор<br>E — взаимодействие<br>F — облегчиться</small></p>
-  <button id="play" onclick="window.startGame()">ИГРАТЬ</button>
+  <button type="button" onclick="startGame()">ИГРАТЬ (или нажми Пробел)</button>
  </div>
 </div>
+
 <div id="hud">
  <div id="title">TOILET SIMULATOR</div>
  <div id="cross"></div>
  <div id="prompt"></div>
  <div id="help">WASD — движение | E — действие | F — облегчиться<br>Найди предмет и посмотри на него</div>
 </div>
+
 <script>
 let isPlaying = false, isMouseDown = false, audioCtx = null, tapNoise = null;
 
+function startGame() {
+ if (isPlaying) return;
+ isPlaying = true;
+ const s = document.getElementById('start');
+ if (s) s.remove();
+ initAudio();
+ try { document.body.requestPointerLock(); } catch (e) {}
+}
+
+window.addEventListener('keydown', (e) => {
+ if (!isPlaying && (e.code === 'Space' || e.code === 'Enter')) startGame();
+});
+
 function initAudio() {
- if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
- if (audioCtx.state === 'suspended') audioCtx.resume();
+ try {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+ } catch (e) {}
 }
 
 function noiseBuf() {
@@ -54,7 +71,7 @@ function noiseBuf() {
 
 const sfx = {
  flush() {
-  initAudio();
+  initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime, n = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
   n.buffer = noiseBuf(); n.loop = true;
   f.type = 'bandpass'; f.frequency.setValueAtTime(600, t); f.frequency.exponentialRampToValueAtTime(300, t + 2.5);
@@ -62,7 +79,7 @@ const sfx = {
   n.connect(f); f.connect(g); g.connect(audioCtx.destination); n.start(t); n.stop(t + 2.6);
  },
  toggleTap(on) {
-  initAudio();
+  initAudio(); if (!audioCtx) return;
   if (on && !tapNoise) {
    const n = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
    n.buffer = noiseBuf(); n.loop = true; f.type = 'highpass'; f.frequency.value = 1000; g.gain.value = 0.15;
@@ -70,14 +87,14 @@ const sfx = {
   } else if (!on && tapNoise) { tapNoise.stop(); tapNoise = null; }
  },
  gulp(d = 0) {
-  initAudio();
+  initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime + d, o = audioCtx.createOscillator(), g = audioCtx.createGain();
   o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(380, t + 0.12); o.frequency.exponentialRampToValueAtTime(110, t + 0.25);
   g.gain.setValueAtTime(0.01, t); g.gain.linearRampToValueAtTime(0.35, t + 0.05); g.gain.exponentialRampToValueAtTime(0.001, t + 0.26);
   o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + 0.27);
  },
  coffee() {
-  initAudio();
+  initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime, n = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
   n.buffer = noiseBuf(); f.type = 'bandpass'; f.frequency.setValueAtTime(800, t); f.frequency.linearRampToValueAtTime(2200, t + 0.25);
   g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
@@ -85,7 +102,7 @@ const sfx = {
   this.gulp(0.28);
  },
  beer() {
-  initAudio();
+  initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime, n = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
   n.buffer = noiseBuf(); f.type = 'highpass'; f.frequency.value = 3000;
   g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
@@ -93,7 +110,7 @@ const sfx = {
   this.gulp(0.3); this.gulp(0.65);
  },
  fart() {
-  initAudio();
+  initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain(), lfo = audioCtx.createOscillator(), lg = audioCtx.createGain();
   o.type = 'sawtooth'; o.frequency.setValueAtTime(95, t); o.frequency.linearRampToValueAtTime(45, t + 0.55);
   lfo.frequency.value = 28; lg.gain.value = 25; lfo.connect(lg); lg.connect(o.frequency);
@@ -101,7 +118,7 @@ const sfx = {
   o.connect(g); g.connect(audioCtx.destination); lfo.start(t); o.start(t); lfo.stop(t + 0.6); o.stop(t + 0.6);
  },
  click() {
-  initAudio();
+  initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
   o.type = 'triangle'; o.frequency.setValueAtTime(900, t); o.frequency.exponentialRampToValueAtTime(100, t + 0.04);
   g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
@@ -109,81 +126,69 @@ const sfx = {
  }
 };
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x9ca7aa);
-scene.fog = new THREE.Fog(0x9ca7aa, 10, 24);
+if (typeof THREE !== 'undefined') {
+ const scene = new THREE.Scene();
+ scene.background = new THREE.Color(0x9ca7aa);
+ scene.fog = new THREE.Fog(0x9ca7aa, 10, 24);
 
-const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 100);
-camera.position.set(0, 1.65, 2.5);
-camera.rotation.order = 'YXZ';
+ const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 100);
+ camera.position.set(0, 1.65, 2.5);
+ camera.rotation.order = 'YXZ';
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true;
-document.body.appendChild(renderer.domElement);
+ const renderer = new THREE.WebGLRenderer({ antialias: true });
+ renderer.setSize(innerWidth, innerHeight);
+ renderer.shadowMap.enabled = true;
+ document.body.appendChild(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0x60616b, 1.2));
-const mainLight = new THREE.PointLight(0xffedcf, 1.5, 18);
-mainLight.position.set(0, 4.5, 0); mainLight.castShadow = true;
-scene.add(mainLight);
+ scene.add(new THREE.HemisphereLight(0xffffff, 0x60616b, 1.2));
+ const mainLight = new THREE.PointLight(0xffedcf, 1.5, 18);
+ mainLight.position.set(0, 4.5, 0); mainLight.castShadow = true;
+ scene.add(mainLight);
 
-const mat = {
- tile: new THREE.MeshStandardMaterial({ color: 0xc5c9c8, roughness: 0.3 }),
- wall: new THREE.MeshStandardMaterial({ color: 0xadb8b8, roughness: 0.8 }),
- white: new THREE.MeshStandardMaterial({ color: 0xf0eee8, roughness: 0.2 }),
- metal: new THREE.MeshStandardMaterial({ color: 0x999fa3, metalness: 0.85, roughness: 0.2 }),
- dark: new THREE.MeshStandardMaterial({ color: 0x343b40, roughness: 0.5 }),
- water: new THREE.MeshStandardMaterial({ color: 0x53c8ee, transparent: true, opacity: 0.5 })
-};
+ const mat = {
+  tile: new THREE.MeshStandardMaterial({ color: 0xc5c9c8, roughness: 0.3 }),
+  wall: new THREE.MeshStandardMaterial({ color: 0xadb8b8, roughness: 0.8 }),
+  white: new THREE.MeshStandardMaterial({ color: 0xf0eee8, roughness: 0.2 }),
+  metal: new THREE.MeshStandardMaterial({ color: 0x999fa3, metalness: 0.85, roughness: 0.2 }),
+  dark: new THREE.MeshStandardMaterial({ color: 0x343b40, roughness: 0.5 }),
+  water: new THREE.MeshStandardMaterial({ color: 0x53c8ee, transparent: true, opacity: 0.5 })
+ };
 
-function box(x, y, z, sx, sy, sz, m) {
- const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), m);
- mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; scene.add(mesh); return mesh;
-}
-function cyl(x, y, z, rt, rb, h, m) {
- const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, 32), m);
- mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; scene.add(mesh); return mesh;
-}
+ function box(x, y, z, sx, sy, sz, m) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), m);
+  mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; scene.add(mesh); return mesh;
+ }
+ function cyl(x, y, z, rt, rb, h, m) {
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, 32), m);
+  mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; scene.add(mesh); return mesh;
+ }
 
-box(0, -0.15, 0, 8, 0.3, 8, mat.tile);
-box(0, 2, -4, 8, 4, 0.2, mat.wall);
-box(-4, 2, 0, 0.2, 4, 8, mat.wall);
-box(4, 2, 0, 0.2, 4, 8, mat.wall);
-box(0, 4.1, 0, 8, 0.2, 8, mat.white);
+ box(0, -0.15, 0, 8, 0.3, 8, mat.tile);
+ box(0, 2, -4, 8, 4, 0.2, mat.wall);
+ box(-4, 2, 0, 0.2, 4, 8, mat.wall);
+ box(4, 2, 0, 0.2, 4, 8, mat.wall);
+ box(0, 4.1, 0, 8, 0.2, 8, mat.white);
 
-const grid = new THREE.GridHelper(8, 16, 0x8e9999, 0x8e9999);
-grid.position.y = 0.005;
-scene.add(grid);
+ const grid = new THREE.GridHelper(8, 16, 0x8e9999, 0x8e9999);
+ grid.position.y = 0.005; scene.add(grid);
 
-const toilet = new THREE.Group();
-toilet.position.set(1.5, 0, -1.7);
-scene.add(toilet);
-const base = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.3, 0.65, 32), mat.white);
-base.position.y = 0.34; base.scale.z = 1.3; toilet.add(base);
-const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.36, 0.2, 32), mat.white);
-bowl.position.set(0, 0.68, -0.08); bowl.scale.z = 1.15; toilet.add(bowl);
-const seat = new THREE.Mesh(new THREE.TorusGeometry(0.39, 0.055, 12, 32), mat.dark);
-seat.rotation.x = Math.PI / 2; seat.position.set(0, 0.81, -0.08); seat.scale.set(1, 1.18, 1); toilet.add(seat);
-const tank = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.85, 0.3), mat.white);
-tank.position.set(0, 1.05, 0.38); toilet.add(tank);
-const flushButton = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.05), mat.metal);
-flushButton.position.set(0.27, 1.5, 0.21); toilet.add(flushButton);
-flushButton.userData = { action: "flush", label: "Нажми E — смыть воду" };
+ const toilet = new THREE.Group(); toilet.position.set(1.5, 0, -1.7); scene.add(toilet);
+ const base = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.3, 0.65, 32), mat.white);
+ base.position.y = 0.34; base.scale.z = 1.3; toilet.add(base);
+ const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.36, 0.2, 32), mat.white);
+ bowl.position.set(0, 0.68, -0.08); bowl.scale.z = 1.15; toilet.add(bowl);
+ const seat = new THREE.Mesh(new THREE.TorusGeometry(0.39, 0.055, 12, 32), mat.dark);
+ seat.rotation.x = Math.PI / 2; seat.position.set(0, 0.81, -0.08); seat.scale.set(1, 1.18, 1); toilet.add(seat);
+ const tank = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.85, 0.3), mat.white);
+ tank.position.set(0, 1.05, 0.38); toilet.add(tank);
+ const flushButton = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.05), mat.metal);
+ flushButton.position.set(0.27, 1.5, 0.21); toilet.add(flushButton);
+ flushButton.userData = { action: "flush", label: "Нажми E — смыть воду" };
 
-box(-2, 0.45, -1.65, 0.9, 0.9, 0.65, mat.white);
-const basin = cyl(-2, 0.96, -1.65, 0.58, 0.58, 0.16, mat.white); basin.scale.z = 0.72;
-const tap = cyl(-2, 1.25, -1.88, 0.045, 0.045, 0.35, mat.metal);
-tap.userData = { action: "water", label: "Нажми E — включить кран" };
-box(-2, 1.4, -1.72, 0.35, 0.06, 0.06, mat.metal);
-const sinkWater = cyl(-2, 1.15, -1.6, 0.02, 0.02, 0.4, mat.water); sinkWater.visible = false;
+ box(-2, 0.45, -1.65, 0.9, 0.9, 0.65, mat.white);
+ const basin = cyl(-2, 0.96, -1.65, 0.58, 0.58, 0.16, mat.white); basin.scale.z = 0.72;
+ const tap = cyl(-2, 1.25, -1.88, 0.045, 0.045, 0.35, mat.metal);
+ tap.userData = { action: "water", label: "Нажми E — включить кран" };
+ box(-2, 1.4, -1.72, 0.35, 0.06, 0.06, mat.metal);
+ const sinkWater = cyl(-2, 1.15, -1.6, 0.02, 0.02, 0.4, mat.water); sinkWater.visible = false;
 
-box(-2, 2.25, -3.88, 1.3, 1.3, 0.06, new THREE.MeshStandardMaterial({ color: 0x9ac6d0, metalness: 0.9, roughness: 0.08 }));
-
-const doorPivot = new THREE.Group(); doorPivot.position.set(-1.5, 0, 3.88); scene.add(doorPivot);
-const door = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 0.12), new THREE.MeshStandardMaterial({ color: 0x795c45, roughness: 0.65 }));
-door.position.set(0.75, 1.5, 0); doorPivot.add(door);
-const knob = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 16), mat.metal);
-knob.position.set(1.3, 1.5, -0.1); doorPivot.add(knob);
-door.userData = { action: "door", label: "Нажми E — открыть дверь" };
-
-const switchPlate = box(-3.88, 1.5, 0.8, 0.06, 0.35, 0.22, mat.white);
