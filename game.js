@@ -269,21 +269,6 @@ if (typeof THREE !== 'undefined') {
 
  const interactables = [flushButton, urinal1, urinal2, tap, door, switchPlate, coffee, coffeeLiquid, spray, paper, body, ashtray, cigPack];
 
-
- box(2.5, 0.35, -1.7, 0.65, 0.7, 0.65, mat.dark);
- const ashtray = cyl(2.4, 0.73, -1.65, 0.14, 0.12, 0.06, mat.metal);
- ashtray.userData = { action: "smoke", label: "Нажми E — затянуться" };
- cyl(2.4, 0.745, -1.65, 0.11, 0.11, 0.035, mat.dark);
- const cig = box(2.44, 0.765, -1.65, 0.14, 0.018, 0.018, mat.white); cig.rotation.y = 0.4;
- const ember = box(2.38, 0.765, -1.62, 0.025, 0.019, 0.019, new THREE.MeshBasicMaterial({ color: 0xff4500 })); ember.rotation.y = 0.4;
- const smokeParticle = cyl(2.38, 0.82, -1.62, 0.015, 0.005, 0.08, new THREE.MeshBasicMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.35 }));
-
- const cigPack = box(2.62, 0.77, -1.75, 0.11, 0.14, 0.045, new THREE.MeshStandardMaterial({ color: 0x9e1b1b, roughness: 0.4 }));
- cigPack.rotation.y = -0.3; cigPack.userData = { action: "smoke", label: "Нажми E — затянуться" };
- const cigPackTop = box(2.62, 0.845, -1.75, 0.105, 0.02, 0.04, mat.white); cigPackTop.rotation.y = -0.3;
-
- const interactables = [flushButton, urinal1, urinal2, tap, door, switchPlate, coffee, coffeeLiquid, spray, paper, body, ashtray, cigPack];
-
  let lastMouseX = null, lastMouseY = null;
  document.addEventListener('mousemove', (e) => {
   if (!isPlaying) return;
