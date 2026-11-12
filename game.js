@@ -322,7 +322,95 @@ if (typeof THREE !== 'undefined') {
  radio.userData = { action: "radio", label: "Нажми E — включить/выключить радио" };
 
  const interactables = [flushButton, seat, urinal1, urinal2, tap, handDryer, door, switchPlate, coffee, coffeeLiquid, spray, paper, body, ashtray, cigPack, radio];
-
  let lastMouseX = null, lastMouseY = null;
  document.addEventListener('mousemove', (e) => {
   if (!isPlaying) return;
+  if (lastMouseX !== null && lastMouseY !== null) {
+   camera.rotation.y -= (e.clientX - lastMouseX) * 0.004;
+   camera.rotation.x = Math.max(-1.4, Math.min(1.4, camera.rotation.x - (e.clientY - lastMouseY) * 0.004));
+  }
+  lastMouseX = e.clientX; lastMouseY = e.clientY;
+ });
+ document.addEventListener('mouseleave', () => { lastMouseX = null; lastMouseY = null; });
+
+ const keys = {};
+ let doorOpen = false, lightOn = true, currentTarget = null;
+ document.addEventListener('keydown', (e) => {
+  keys[e.code] = true;
+  if (!isPlaying) return;
+  if (e.code === 'KeyE' && currentTarget) {
+   const a = currentTarget.userData.action;
+   if (a === "flush" || a === "urinal") { sfx.flush(); water.visible = true; setTimeout(() => water.visible = false, 2500); }
+   if (a === "sit") {
+    isSitting = !isSitting; sfx.click();
+    if (isSitting) { camera.position.set(1.5, 1.15, -1.78); seat.userData.label = "Нажми E — встать с унитаза"; }
+    else { camera.position.set(1.5, 1.65, -2.5); seat.userData.label = "Нажми E — сесть на унитаз"; }
+   }
+   if (a === "water") { sinkWater.visible = !sinkWater.visible; sfx.toggleTap(sinkWater.visible); }
+   if (a === "dryer") { sfx.dryer(); }
+   if (a === "door") { sfx.creak(); doorOpen = !doorOpen; doorPivot.rotation.y = doorOpen ? -1.3 : 0; }
+   if (a === "light") { sfx.click(); lightOn = !lightOn; mainLight.intensity = lightOn ? 1.3 : 0.08; lampBulb.visible = lightOn; }
+   if (a === "coffee" && coffeeLiquid.visible) { sfx.coffee(); coffeeLiquid.visible = false; coffee.userData.label = "Кружка пуста"; coffeeBoostTimer = 10; }
+   if (a === "paper") { sfx.paper(); strip.visible = !strip.visible; }
+   if (a === "beer") { sfx.beer(); beerBottle.visible = false; drunkTimer = 12; }
+   if (a === "spray") { sfx.spray(); spray.position.y = 1.12; setTimeout(() => spray.position.y = 1.05, 200); }
+   if (a === "smoke") { sfx.smoke(); ember.scale.set(1.6, 1.6, 1.6); setTimeout(() => ember.scale.set(1, 1, 1), 600); }
+   if (a === "radio") { sfx.click(); sfx.toggleRadio(); }
+  }
+  if (e.code === 'KeyF') sfx.fart(0, isSitting ? 1.5 : 1);
+ });
+ document.addEventListener('keyup', (e) => keys[e.code] = false);
+
+ const raycaster = new THREE.Raycaster(); raycaster.far = 3.5;
+ const centerVec = new THREE.Vector2(0, 0), fwd = new THREE.Vector3(), rgt = new THREE.Vector3();
+ const promptEl = document.getElementById('prompt'), clock = new THREE.Clock();
+
+ function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.1);
+  if (lightOn && Math.random() < 0.03) mainLight.intensity = 0.7 + Math.random() * 0.6;
+  smokeParticle.position.y += dt * 0.25;
+  smokeParticle.material.opacity = Math.max(0, 0.4 - (smokeParticle.position.y - 0.8) * 0.8);
+  if (smokeParticle.position.y > 1.3) smokeParticle.position.y = 0.8;
+
+  if (drunkTimer > 0) { drunkTimer -= dt; camera.rotation.z = Math.sin(clock.elapsedTime * 3) * 0.08; }
+  else { camera.rotation.z = 0; }
+  if (coffeeBoostTimer > 0) coffeeBoostTimer -= dt;
+
+  if (isPlaying) {
+   if (!isSitting) {
+    const spd = (coffeeBoostTimer > 0 ? 5.5 : 3.5) * dt;
+    fwd.set(0, 0, -1).applyQuaternion(camera.quaternion); fwd.y = 0; fwd.normalize();
+    rgt.set(1, 0, 0).applyQuaternion(camera.quaternion); rgt.y = 0; rgt.normalize();
+    let moved = false;
+    if (keys['KeyW']) { camera.position.addScaledVector(fwd, spd); moved = true; }
+    if (keys['KeyS']) { camera.position.addScaledVector(fwd, -spd); moved = true; }
+    if (keys['KeyD']) { camera.position.addScaledVector(rgt, spd); moved = true; }
+    if (keys['KeyA']) { camera.position.addScaledVector(rgt, -spd); moved = true; }
+    camera.position.x = Math.max(-3.5, Math.min(3.5, camera.position.x));
+    camera.position.z = Math.max(-3.5, Math.min(3.5, camera.position.z));
+    if (moved) {
+     stepTimer += dt;
+     if (stepTimer > (coffeeBoostTimer > 0 ? 0.28 : 0.42)) { sfx.step(); stepTimer = 0; }
+    }
+   }
+   raycaster.setFromCamera(centerVec, camera);
+   const hits = raycaster.intersectObjects(interactables);
+   if (hits.length > 0 && hits.at(0).object.visible) {
+    currentTarget = hits.at(0).object;
+    promptEl.textContent = currentTarget.userData.label;
+    promptEl.style.display = 'block';
+   } else {
+    currentTarget = null;
+    promptEl.style.display = 'none';
+   }
+  }
+  renderer.render(scene, camera);
+ }
+
+ window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);
+ });
+ animate();
+}
+
