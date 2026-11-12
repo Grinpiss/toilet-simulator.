@@ -55,30 +55,43 @@ const sfx = {
   n.connect(f); f.connect(g); g.connect(audioCtx.destination); n.start(t); n.stop(t + 0.25);
   this.gulp(0.28);
  },
- beer() {
+  beer() {
   initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime, n = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
   n.buffer = sharedNoiseBuffer; f.type = 'highpass'; f.frequency.value = 3000;
   g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
   n.connect(f); f.connect(g); g.connect(audioCtx.destination); n.start(t); n.stop(t + 0.2);
-  this.gulp(0.3); this.gulp(0.65);
+  this.gulp(0.3);
+  this.gulp(0.62);
+  this.gulp(0.94);
+  this.burp(1.35);
+  this.fart(2.35);
  },
  smoke() {
   initAudio(); if (!audioCtx) return;
-  const t = audioCtx.currentTime, n = audioCtx.createBufferSource(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
-  n.buffer = sharedNoiseBuffer; n.loop = true;
-  f.type = 'bandpass'; f.frequency.setValueAtTime(1400, t); f.frequency.linearRampToValueAtTime(2600, t + 0.6);
-  g.gain.setValueAtTime(0.01, t); g.gain.linearRampToValueAtTime(0.25, t + 0.2); g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
-  n.connect(f); f.connect(g); g.connect(audioCtx.destination); n.start(t); n.stop(t + 0.8);
+  const t = audioCtx.currentTime;
+  const n1 = audioCtx.createBufferSource(), f1 = audioCtx.createBiquadFilter(), g1 = audioCtx.createGain();
+  n1.buffer = sharedNoiseBuffer; n1.loop = true;
+  f1.type = 'bandpass'; f1.frequency.setValueAtTime(1800, t); f1.frequency.linearRampToValueAtTime(3200, t + 0.7);
+  g1.gain.setValueAtTime(0.01, t); g1.gain.linearRampToValueAtTime(0.28, t + 0.25); g1.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+  n1.connect(f1); f1.connect(g1); g1.connect(audioCtx.destination); n1.start(t); n1.stop(t + 0.8);
+
+  const n2 = audioCtx.createBufferSource(), f2 = audioCtx.createBiquadFilter(), g2 = audioCtx.createGain();
+  n2.buffer = sharedNoiseBuffer; n2.loop = true;
+  f2.type = 'lowpass'; f2.frequency.setValueAtTime(900, t + 1.0); f2.frequency.linearRampToValueAtTime(350, t + 2.1);
+  g2.gain.setValueAtTime(0.01, t + 1.0); g2.gain.linearRampToValueAtTime(0.32, t + 1.25); g2.gain.exponentialRampToValueAtTime(0.001, t + 2.2);
+  n2.connect(f2); f2.connect(g2); g2.connect(audioCtx.destination); n2.start(t + 1.0); n2.stop(t + 2.2);
  },
- fart() {
+ fart(delay = 0) {
   initAudio(); if (!audioCtx) return;
-  const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain(), lfo = audioCtx.createOscillator(), lg = audioCtx.createGain();
-  o.type = 'sawtooth'; o.frequency.setValueAtTime(95, t); o.frequency.linearRampToValueAtTime(45, t + 0.55);
+  const t = audioCtx.currentTime + delay;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain(), lfo = audioCtx.createOscillator(), lg = audioCtx.createGain();
+  o.type = 'sawtooth'; o.frequency.setValueAtTime(95, t); o.frequency.linearRampToValueAtTime(45, t + 0.65);
   lfo.frequency.value = 28; lg.gain.value = 25; lfo.connect(lg); lg.connect(o.frequency);
-  g.gain.setValueAtTime(0.4, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
-  o.connect(g); g.connect(audioCtx.destination); lfo.start(t); o.start(t); lfo.stop(t + 0.6); o.stop(t + 0.6);
+  g.gain.setValueAtTime(0.45, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+  o.connect(g); g.connect(audioCtx.destination); lfo.start(t); o.start(t); lfo.stop(t + 0.7); o.stop(t + 0.7);
  },
+
  click() {
   initAudio(); if (!audioCtx) return;
   const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
