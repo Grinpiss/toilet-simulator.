@@ -1,0 +1,280 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toilet Simulator</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;background:#111;color:white;font-family:Arial}
+canvas{display:block}
+#hud{position:fixed;inset:0;pointer-events:none}
+#title{position:absolute;top:20px;left:24px;font-size:20px;font-weight:bold;letter-spacing:3px}
+#help{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);text-align:center;background:#111b;padding:14px 24px;border:1px solid #ffffff33;border-radius:12px;line-height:1.8}
+#prompt{position:absolute;top:57%;left:50%;transform:translate(-50%,-50%);font-size:17px;background:#111d;padding:12px 20px;border-radius:9px;display:none}
+#cross{position:absolute;top:50%;left:50%;width:5px;height:5px;background:white;border-radius:50%;transform:translate(-50%,-50%)}
+#start{position:fixed;inset:0;background:linear-gradient(#101820dd,#101820f2);display:flex;align-items:center;justify-content:center;z-index:5;text-align:center}
+.panel{background:#202a32;padding:35px;border-radius:18px;width:min(90%,420px);box-shadow:0 20px 70px #0009}
+h1{letter-spacing:4px;font-size:30px}
+button{background:#e6e6e6;color:#151515;border:0;border-radius:8px;padding:14px 28px;font-weight:bold;cursor:pointer;font-size:16px}
+small{color:#aaa;line-height:1.7}
+</style>
+</head>
+<body>
+<div id="start">
+ <div class="panel">
+  <h1>🚽 TOILET SIMULATOR</h1>
+  <p>Добро пожаловать в туалет.</p>
+  <p><small>WASD — движение<br>Мышь — обзор<br>E — взаимодействие<br>ESC — освободить мышь</small></p>
+  <button id="play">ИГРАТЬ</button>
+ </div>
+</div>
+<div id="hud">
+ <div id="title">TOILET SIMULATOR</div>
+ <div id="cross"></div>
+ <div id="prompt"></div>
+ <div id="help">WASD — движение &nbsp; | &nbsp; E — действие<br>Найди предмет и посмотри на него</div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x9ca7aa);
+scene.fog=new THREE.Fog(0x9ca7aa,10,24);
+
+const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,100);
+camera.position.set(0,1.65,2.5);
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.15;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x60616b,2));
+const mainLight=new THREE.PointLight(0xffedcf,65,18);
+mainLight.position.set(0,4.5,0);
+mainLight.castShadow=true;
+scene.add(mainLight);
+
+const materials={
+ tile:new THREE.MeshStandardMaterial({color:0xc5c9c8,roughness:.3}),
+ wall:new THREE.MeshStandardMaterial({color:0xadb8b8,roughness:.8}),
+ white:new THREE.MeshStandardMaterial({color:0xf0eee8,roughness:.2}),
+ metal:new THREE.MeshStandardMaterial({color:0x999fa3,metalness:.85,roughness:.2}),
+ dark:new THREE.MeshStandardMaterial({color:0x343b40,roughness:.5}),
+ water:new THREE.MeshStandardMaterial({color:0x53c8ee,transparent:true,opacity:.5,roughness:.1})
+};
+
+function box(name,x,y,z,sx,sy,sz,mat,shadow=true){
+ const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),mat);
+ m.name=name;m.position.set(x,y,z);
+ m.castShadow=shadow;m.receiveShadow=true;scene.add(m);return m;
+}
+function cylinder(x,y,z,rt,rb,h,mat){
+ const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,32),mat);
+ m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m;
+}
+
+// ROOM
+box("floor",0,-.15,0,8,.3,8,materials.tile);
+box("back wall",0,2,-4,8,4,.2,materials.wall);
+box("left wall",-4,2,0,.2,4,8,materials.wall);
+box("right wall",4,2,0,.2,4,8,materials.wall);
+box("ceiling",0,4.1,0,8,.2,8,materials.white);
+
+// Decorative tile lines
+const gridMat=new THREE.LineBasicMaterial({color:0x8e9999,transparent:true,opacity:.35});
+for(let i=-3.5;i<=3.5;i+=.5){
+ const points=[new THREE.Vector3(i,.008,-3.9),new THREE.Vector3(i,.008,3.9)];
+ scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),gridMat));
+ const points2=[new THREE.Vector3(-3.9,.008,i),new THREE.Vector3(3.9,.008,i)];
+ scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points2),gridMat));
+}
+
+// TOILET
+const toilet=new THREE.Group();
+toilet.position.set(1.5,0,-1.7);
+scene.add(toilet);
+function tbox(x,y,z,sx,sy,sz,mat){
+ const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),mat);
+ m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;toilet.add(m);return m;
+}
+const base=new THREE.Mesh(new THREE.CylinderGeometry(.38,.3,.65,32),materials.white);
+base.position.y=.34;base.scale.z=1.3;base.castShadow=true;toilet.add(base);
+const bowl=new THREE.Mesh(new THREE.CylinderGeometry(.48,.36,.2,40),materials.white);
+bowl.position.set(0,.68,-.08);bowl.scale.z=1.15;toilet.add(bowl);
+const seat=new THREE.Mesh(new THREE.TorusGeometry(.39,.055,12,48),materials.dark);
+seat.rotation.x=Math.PI/2;seat.position.set(0,.81,-.08);seat.scale.set(1,1.18,1);toilet.add(seat);
+const tank=tbox(0,1.05,.38,.75,.85,.3,materials.white);
+const flushButton=tbox(.27,1.5,.21,.12,.06,.05,materials.metal);
+flushButton.userData={action:"flush",label:"Нажми E — смыть воду"};
+
+// SINK
+box("sink stand",-2,.45,-1.65,.9,.9,.65,materials.white);
+const basin=cylinder(-2,.96,-1.65,.58,.58,.16,materials.white);
+basin.scale.z=.72;
+const tap=cylinder(-2,1.25,-1.88,.045,.045,.35,materials.metal);
+tap.userData={action:"water",label:"Нажми E — включить кран"};
+const faucet=box("faucet",-2,1.4,-1.72,.35,.06,.06,materials.metal);
+
+// MIRROR
+const mirror=box("mirror",-2,2.25,-3.88,1.3,1.3,.06,
+ new THREE.MeshStandardMaterial({color:0x9ac6d0,metalness:.9,roughness:.08}));
+
+// DOOR
+const doorPivot=new THREE.Group();
+doorPivot.position.set(-1.5,0,3.88);
+scene.add(doorPivot);
+const door=new THREE.Mesh(new THREE.BoxGeometry(1.5,3,.12),
+ new THREE.MeshStandardMaterial({color:0x795c45,roughness:.65}));
+door.position.set(.75,1.5,0);door.castShadow=true;doorPivot.add(door);
+const knob=new THREE.Mesh(new THREE.SphereGeometry(.07,16,16),materials.metal);
+knob.position.set(1.3,1.5,-.1);doorPivot.add(knob);
+door.userData={action:"door",label:"Нажми E — открыть дверь"};
+
+// LIGHT SWITCH
+const switchPlate=box("switch",-3.88,1.5,.8,.06,.35,.22,materials.white);
+switchPlate.userData={action:"light",label:"Нажми E — выключить свет"};
+
+// WATER EFFECT
+const water=cylinder(1.5,.79,-1.78,.38,.38,.015,materials.water);
+water.visible=false;
+
+// Interactable objects
+const interactables=[flushButton,tap,door,switchPlate];
+const raycaster=new THREE.Raycaster();
+raycaster.far=3.5;
+const center=new THREE.Vector2(0,0);
+const prompt=document.getElementById("prompt");
+
+let yaw=0,pitch=0,locked=false;
+const keys={};
+let waterOn=false,lightOn=true,doorOpen=false,flushing=false;
+let audio;
+
+document.getElementById("play").onclick=()=>{
+ audio=new (window.AudioContext||window.webkitAudioContext)();
+ renderer.domElement.requestPointerLock();
+ document.getElementById("start").style.display="none";
+};
+document.addEventListener("pointerlockchange",()=>{
+ locked=document.pointerLockElement===renderer.domElement;
+});
+document.addEventListener("mousemove",e=>{
+ if(!locked)return;
+ yaw-=e.movementX*.002;
+ pitch-=e.movementY*.002;
+ pitch=Math.max(-1.35,Math.min(1.35,pitch));
+});
+document.addEventListener("keydown",e=>{
+ keys[e.code]=true;
+ if(e.code==="KeyE")interact();
+});
+document.addEventListener("keyup",e=>keys[e.code]=false);
+
+function sound(freq=440,duration=.15,type="sine"){
+ if(!audio)return;
+ const osc=audio.createOscillator();
+ const gain=audio.createGain();
+ osc.type=type;osc.frequency.value=freq;
+ gain.gain.setValueAtTime(.12,audio.currentTime);
+ gain.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);
+ osc.connect(gain);gain.connect(audio.destination);
+ osc.start();osc.stop(audio.currentTime+duration);
+}
+
+function interact(){
+ raycaster.setFromCamera(center,camera);
+ const hits=raycaster.intersectObjects(interactables);
+ if(!hits.length)return;
+ const action=hits[0].object.userData.action;
+
+ if(action==="flush"&&!flushing){
+  flushing=true;
+  sound(180,.5,"sawtooth");
+  flushButton.position.y-=.045;
+  setTimeout(()=>flushButton.position.y+=.045,180);
+  water.visible=true;
+  water.scale.setScalar(.3);
+  let start=performance.now();
+  function animateWater(now){
+   let t=(now-start)/2500;
+   water.scale.setScalar(.3+t*1.5);
+   water.material.opacity=1-t;
+   if(t<1)requestAnimationFrame(animateWater);
+   else{water.visible=false;water.material.opacity=.5;water.scale.setScalar(1);flushing=false;}
+  }
+  requestAnimationFrame(animateWater);
+ }
+ if(action==="water"){
+  waterOn=!waterOn;
+  water.visible=waterOn;
+  sound(waterOn?650:250,.25);
+ }
+ if(action==="door"){
+  doorOpen=!doorOpen;
+  doorPivot.rotation.y=doorOpen?-Math.PI/2:0;
+  sound(doorOpen?300:180,.2);
+ }
+ if(action==="light"){
+  lightOn=!lightOn;
+  mainLight.intensity=lightOn?65:0;
+  sound(500,.1);
+ }
+}
+
+const clock=new THREE.Clock();
+function update(){
+ requestAnimationFrame(update);
+ const dt=Math.min(clock.getDelta(),.05);
+
+ camera.rotation.order="YXZ";
+ camera.rotation.y=yaw;
+ camera.rotation.x=pitch;
+
+ if(locked){
+  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
+  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+  const move=new THREE.Vector3();
+  if(keys.KeyW)move.add(forward);
+  if(keys.KeyS)move.sub(forward);
+  if(keys.KeyD)move.add(right);
+  if(keys.KeyA)move.sub(right);
+  if(move.lengthSq()>0){
+   move.normalize().multiplyScalar(3*dt);
+   camera.position.add(move);
+  }
+  camera.position.x=THREE.MathUtils.clamp(camera.position.x,-3.65,3.65);
+  camera.position.z=THREE.MathUtils.clamp(camera.position.z,-3.65,3.65);
+  camera.position.y=1.65;
+ }
+
+ raycaster.setFromCamera(center,camera);
+ const hits=raycaster.intersectObjects(interactables);
+ if(locked&&hits.length){
+  prompt.style.display="block";
+  prompt.textContent=hits[0].object.userData.label;
+ }else prompt.style.display="none";
+
+ if(waterOn)water.rotation.y+=dt*2;
+ renderer.render(scene,camera);
+}
+update();
+
+addEventListener("resize",()=>{
+ camera.aspect=innerWidth/innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
