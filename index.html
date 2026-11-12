@@ -148,8 +148,46 @@ switchPlate.userData={action:"light",label:"Нажми E — выключить 
 // WATER EFFECT
 const water=cylinder(1.5,.79,-1.78,.38,.38,.015,materials.water);
 water.visible=false;
+ 
+// COFFEE
+const coffee = cylinder(-2, 1.15, -1.05, .13, .13, .3, materials.white);
+coffee.userData = {
+  action: "coffee",
+  label: "Нажми E — выпить кофе"
+};
+
+// COFFEE LIQUID
+const coffeeLiquid = cylinder(-2, 1.305, -1.05, .105, .105, .012,
+  new THREE.MeshStandardMaterial({color:0x4b2410}));
+coffeeLiquid.userData = {action:"coffee",label:"Выпить кофе"};
+
+// AIR FRESHENER
+const spray = cylinder(-2.8, 1.05, -1.5, .09, .09, .38, materials.white);
+spray.userData = {
+  action:"spray",
+  label:"Нажми E — освежитель воздуха"
+};
+
+// SPRAY NOZZLE
+const nozzle = box("spray nozzle",-2.8,1.25,-1.5,.12,.06,.12,materials.metal);
+
+// TOILET PAPER
+const paper = cylinder(3.75,1.15,-1.7,.16,.16,.24,materials.white);
+paper.rotation.z = Math.PI/2;
+paper.userData = {
+  action:"paper",
+  label:"Нажми E — оторвать бумагу"
+};
+
+// PAPER STRIP
+const strip = box("paper strip",3.75,.85,-1.7,.12,.35,.025,materials.white);
+strip.visible = false;
+
+// Add objects to interaction system
+
 
 // Interactable objects
+ 
 const interactables=[flushButton,tap,door,switchPlate];
 const raycaster=new THREE.Raycaster();
 raycaster.far=3.5;
@@ -192,10 +230,12 @@ function sound(freq=440,duration=.15,type="sine"){
  osc.start();osc.stop(audio.currentTime+duration);
 }
 
+
 function interact(){
  raycaster.setFromCamera(center,camera);
  const hits=raycaster.intersectObjects(interactables);
  if(!hits.length)return;
+
  const action=hits[0].object.userData.action;
 
  if(action==="flush"&&!flushing){
@@ -211,26 +251,56 @@ function interact(){
    water.scale.setScalar(.3+t*1.5);
    water.material.opacity=1-t;
    if(t<1)requestAnimationFrame(animateWater);
-   else{water.visible=false;water.material.opacity=.5;water.scale.setScalar(1);flushing=false;}
+   else{
+    water.visible=false;
+    water.material.opacity=.5;
+    water.scale.setScalar(1);
+    flushing=false;
+   }
   }
   requestAnimationFrame(animateWater);
  }
+
  if(action==="water"){
   waterOn=!waterOn;
   water.visible=waterOn;
   sound(waterOn?650:250,.25);
  }
+
  if(action==="door"){
   doorOpen=!doorOpen;
   doorPivot.rotation.y=doorOpen?-Math.PI/2:0;
   sound(doorOpen?300:180,.2);
  }
+
  if(action==="light"){
   lightOn=!lightOn;
   mainLight.intensity=lightOn?65:0;
   sound(500,.1);
  }
+
+ // КОФЕ
+ if(action==="coffee"){
+  sound(650,.2);
+  prompt.textContent="☕ Ты пьёшь кофе!";
+  setTimeout(()=>sound(420,.25),500);
+ }
+
+ // ОСВЕЖИТЕЛЬ
+ if(action==="spray"){
+  sound(900,.3);
+  prompt.textContent="💨 Пшик!";
+ }
+
+ // ТУАЛЕТНАЯ БУМАГА
+ if(action==="paper"){
+  sound(250,.35,"sawtooth");
+  paper.rotation.x+=Math.PI/3;
+  strip.visible=!strip.visible;
+  prompt.textContent="🧻 Бумага оторвана!";
+ }
 }
+
 
 const clock=new THREE.Clock();
 function update(){
