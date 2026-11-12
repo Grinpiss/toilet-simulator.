@@ -6,30 +6,36 @@
 <title>Toilet Simulator</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;overflow:hidden;background:#111;color:white;font-family:Arial;user-select:none}
+body{margin:0;overflow:hidden;background:#111;color:white;font-family:Arial,sans-serif;user-select:none}
 canvas{display:block}
-#hud{position:fixed;inset:0;pointer-events:none}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:2}
 #title{position:absolute;top:20px;left:24px;font-size:20px;font-weight:bold;letter-spacing:3px}
 #help{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);text-align:center;background:#111b;padding:14px 24px;border:1px solid #ffffff33;border-radius:12px;line-height:1.8}
 #prompt{position:absolute;top:57%;left:50%;transform:translate(-50%,-50%);font-size:17px;background:#111d;padding:12px 20px;border-radius:9px;display:none}
 #cross{position:absolute;top:50%;left:50%;width:5px;height:5px;background:white;border-radius:50%;transform:translate(-50%,-50%)}
-#start{position:fixed;inset:0;background:linear-gradient(#101820dd,#101820f2);display:flex;align-items:center;justify-content:center;z-index:5;text-align:center}
+#start{position:fixed;inset:0;background:linear-gradient(#101820dd,#101820f2);display:flex;align-items:center;justify-content:center;z-index:10;text-align:center}
 .panel{background:#202a32;padding:35px;border-radius:18px;width:min(90%,420px);box-shadow:0 20px 70px #0009}
-h1{letter-spacing:4px;font-size:30px}
+h1{letter-spacing:4px;font-size:30px;margin-top:0}
 button{background:#e6e6e6;color:#151515;border:0;border-radius:8px;padding:14px 28px;font-weight:bold;cursor:pointer;font-size:16px;transition:0.2s}
 button:hover{background:#ffffff;transform:scale(1.05)}
 small{color:#aaa;line-height:1.7}
+#err{color:#ff6b6b;font-size:13px;margin-top:12px;display:none}
 </style>
+<!-- Подключаем классическую сборку Three.js, которая работает без сбоев на GitHub Pages -->
+<script src="https://cloudflare.com"></script>
 </head>
 <body>
+
 <div id="start">
  <div class="panel">
   <h1>🚽 TOILET SIMULATOR</h1>
   <p>Добро пожаловать в туалет.</p>
-  <p><small>WASD — движение<br>Мышь (или ЛКМ + мышь) — обзор<br>E — взаимодействие<br>F — облегчиться</small></p>
-  <button id="play">ИГРАТЬ</button>
+  <p><small>WASD — движение<br>Мышь — обзор<br>E — взаимодействие<br>F — облегчиться<br>ESC — пауза / курсор</small></p>
+  <button id="play" onclick="window.startGame()">ИГРАТЬ</button>
+  <div id="err"></div>
  </div>
 </div>
+
 <div id="hud">
  <div id="title">TOILET SIMULATOR</div>
  <div id="cross"></div>
@@ -37,16 +43,18 @@ small{color:#aaa;line-height:1.7}
  <div id="help">WASD — движение &nbsp; | &nbsp; E — действие &nbsp; | &nbsp; F — облегчиться<br>Найди предмет и посмотри на него</div>
 </div>
 
-<script type="importmap">
-{"imports":{"three":"https://unpkg.com"}}
-</script>
-<script type="module">
-import * as THREE from 'three';
+<script>
+// Проверка загрузки 3D-движка
+if (typeof THREE === 'undefined') {
+ const errEl = document.getElementById('err');
+ errEl.style.display = 'block';
+ errEl.textContent = 'Ошибка загрузки 3D-движка. Проверь интернет или отключи блокировщик рекламы.';
+}
 
 let isPlaying = false;
 let isMouseDown = false;
 
-// --- ЗВУКОВОЙ ДВИЖОК ---
+// --- ЗВУКОВОЙ ДВИЖОК (WEB AUDIO API) ---
 let audioCtx = null;
 let tapNoiseNode = null;
 
@@ -58,9 +66,7 @@ function initAudio() {
   if (audioCtx.state === 'suspended') {
    audioCtx.resume();
   }
- } catch (e) {
-  console.warn("AudioContext не поддерживается:", e);
- }
+ } catch (e) {}
 }
 
 function createNoiseBuffer() {
@@ -207,12 +213,10 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
 document.body.appendChild(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0x60616b, 2));
-const mainLight = new THREE.PointLight(0xffedcf, 65, 18);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x60616b, 1.2));
+const mainLight = new THREE.PointLight(0xffedcf, 1.5, 18);
 mainLight.position.set(0, 4.5, 0);
 mainLight.castShadow = true;
 scene.add(mainLight);
@@ -244,8 +248,3 @@ box("ceiling", 0, 4.1, 0, 8, 0.2, 8, materials.white);
 
 const gridMat = new THREE.LineBasicMaterial({ color: 0x8e9999, transparent: true, opacity: 0.35 });
 for (let i = -3.5; i <= 3.5; i += 0.5) {
- scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(i, 0.008, -3.9), new THREE.Vector3(i, 0.008, 3.9)]), gridMat));
- scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3.9, 0.008, i), new THREE.Vector3(3.9, 0.008, i)]), gridMat));
-}
-
-// TOILET
